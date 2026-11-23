@@ -1,7 +1,6 @@
 // =====================================================
 //  CONFIGURAÇÃO DO SITE
 //  Aqui ficam o nome do site e as chaves PÚBLICAS do Supabase.
-//  Nunca coloque aqui a senha do banco nem a chave "service_role".
 // =====================================================
 window.APP_CONFIG = {
   SITE_NAME: "Academia Digital",
