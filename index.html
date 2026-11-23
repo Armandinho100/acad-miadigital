@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Academia Digital</title>
+  <meta name="description" content="Plataforma da faculdade para compartilhar jogos, documentos, links e vídeos entre alunos.">
+  <meta name="theme-color" content="#07080c">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2307080c'/%3E%3Cpath d='M16 6 5 12l11 6 11-6z' fill='none' stroke='%2338e0b4' stroke-width='2' stroke-linejoin='round'/%3E%3Cpath d='M9 15v5c0 2 3.5 4 7 4s7-2 7-4v-5' fill='none' stroke='%238f86ff' stroke-width='2'/%3E%3C/svg%3E">
+  <script>
+    // Aplica o tema salvo antes de desenhar a página (evita "piscar")
+    try { var t = localStorage.getItem('ad-theme'); if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t); } catch (e) {}
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Sora:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Aviso quando o config.js ainda não foi preenchido -->
+  <main id="setup-warning" class="auth" hidden>
+    <section class="auth-card">
+      <h1>Falta conectar o Supabase</h1>
+      <p class="lead">Abra o arquivo <strong>config.js</strong> e cole a <em>Project URL</em> e a <em>chave pública</em> do seu projeto no Supabase. Depois salve e recarregue a página.</p>
+    </section>
+  </main>
+
+  <!-- Carregando -->
+  <div id="splash" class="splash" role="status" aria-live="polite">
+    <div class="spinner" aria-hidden="true"></div>
+    <span class="sr-only">Carregando…</span>
+  </div>
+
+  <!-- Tela de login / cadastro -->
+  <main id="auth-view" class="auth" hidden>
+    <section class="auth-card">
+      <div class="auth-brand">
+        <span class="logo" aria-hidden="true">
+          <svg viewBox="0 0 32 32" fill="none" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M16 6 5 12l11 6 11-6z" stroke="currentColor"/><path d="M9 15v5c0 2 3.5 4 7 4s7-2 7-4v-5" class="logo-2"/></svg>
+        </span>
+        <h1 data-site-name>Academia Digital</h1>
+        <p class="lead">Jogos, documentos, links e vídeos da faculdade, em um só lugar.</p>
+      </div>
+
+      <div class="tabs" role="tablist">
+        <button type="button" class="tab active" role="tab" aria-selected="true" data-tab="login">Entrar</button>
+        <button type="button" class="tab" role="tab" aria-selected="false" data-tab="register">Criar conta</button>
+      </div>
+
+      <form id="form-login" novalidate>
+        <label class="field">
+          <span>E-mail</span>
+          <input type="email" name="email" autocomplete="email" inputmode="email" required>
+        </label>
+        <label class="field">
+          <span>Senha</span>
+          <input type="password" name="password" autocomplete="current-password" required>
+        </label>
+        <label class="check"><input type="checkbox" class="toggle-pass"><span>Mostrar senha</span></label>
+        <p class="form-error" role="alert" hidden></p>
+        <button type="submit" class="btn btn-primary btn-block">Entrar</button>
+      </form>
+
+      <form id="form-register" novalidate hidden>
+        <label class="field">
+          <span>Nome (aparece nas suas publicações)</span>
+          <input type="text" name="name" autocomplete="name" maxlength="60" required>
+        </label>
+        <label class="field">
+          <span>E-mail</span>
+          <input type="email" name="email" autocomplete="email" inputmode="email" required>
+        </label>
+        <label class="field">
+          <span>Senha (mínimo 8 caracteres)</span>
+          <input type="password" name="password" autocomplete="new-password" minlength="8" required>
+        </label>
+        <label class="check"><input type="checkbox" class="toggle-pass"><span>Mostrar senha</span></label>
+        <p class="form-error" role="alert" hidden></p>
+        <button type="submit" class="btn btn-primary btn-block">Criar conta</button>
+      </form>
+    </section>
+  </main>
+
+  <!-- Aplicativo (só aparece logado) -->
+  <div id="app" hidden>
+    <header class="topbar">
+      <a class="brand" href="#/inicio">
+        <span class="logo" aria-hidden="true">
+          <svg viewBox="0 0 32 32" fill="none" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M16 6 5 12l11 6 11-6z" stroke="currentColor"/><path d="M9 15v5c0 2 3.5 4 7 4s7-2 7-4v-5" class="logo-2"/></svg>
+        </span>
+        <span data-site-name>Academia Digital</span>
+      </a>
+
+      <nav id="nav" class="nav" aria-label="Navegação principal">
+        <a href="#/inicio" data-route="inicio">Início</a>
+        <a href="#/jogos" data-route="jogos">Jogos</a>
+        <a href="#/documentos" data-route="documentos">Documentos</a>
+        <a href="#/links" data-route="links">Links</a>
+        <a href="#/videos" data-route="videos">Vídeos</a>
+        <a href="#/outros" data-route="outros">Outros</a>
+        <a href="#/sobre" data-route="sobre">Sobre</a>
+        <a href="#/enviar" data-route="enviar" class="nav-cta">+ Enviar</a>
+      </nav>
+
+      <div class="top-actions">
+        <span class="user-chip" title="Sua conta">
+          <span id="user-name">—</span>
+          <span id="admin-badge" class="badge-admin" hidden>Admin</span>
+        </span>
+        <button type="button" id="theme-btn" class="icon-btn" aria-label="Alternar tema claro/escuro" title="Alternar tema">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+        </button>
+        <button type="button" id="logout-btn" class="icon-btn" aria-label="Sair" title="Sair">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></svg>
+        </button>
+        <button type="button" id="menu-btn" class="icon-btn menu-btn" aria-label="Abrir menu" aria-expanded="false" aria-controls="nav">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <main id="view" class="container"></main>
+
+    <footer class="footer">
+      <span>© <span id="year"></span> <span data-site-name>Academia Digital</span> · Projeto acadêmico</span>
+    </footer>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <!-- ===== Modelos de páginas ===== -->
+
+  <template id="tpl-list">
+    <section class="page">
+      <header class="page-head">
+        <div>
+          <p class="eyebrow" id="list-eyebrow"></p>
+          <h2 id="list-title"></h2>
+          <p class="lead" id="list-sub"></p>
+        </div>
+      </header>
+
+      <div class="toolbar">
+        <label class="search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input type="search" id="q" placeholder="Buscar por título, descrição ou autor" aria-label="Buscar materiais" autocomplete="off">
+        </label>
+        <select id="sort" aria-label="Ordenar por">
+          <option value="recent">Mais recentes</option>
+          <option value="old">Mais antigos</option>
+          <option value="az">Título (A–Z)</option>
+        </select>
+      </div>
+
+      <p class="count" id="count" aria-live="polite"></p>
+      <div class="grid" id="grid"></div>
+    </section>
+  </template>
+
+  <template id="tpl-upload">
+    <section class="page narrow">
+      <header class="page-head">
+        <div>
+          <p class="eyebrow">Compartilhar</p>
+          <h2>Enviar material</h2>
+          <p class="lead">Publique um arquivo, um link, ou os dois. Todos os alunos logados poderão ver e baixar.</p>
+        </div>
+      </header>
+
+      <form id="form-upload" class="panel" novalidate>
+        <label class="field">
+          <span>Categoria</span>
+          <select name="category" id="up-category" required></select>
+        </label>
+
+        <label class="field">
+          <span>Título</span>
+          <input type="text" name="title" maxlength="120" placeholder="Ex.: Jogo da memória em HTML" required>
+        </label>
+
+        <label class="field">
+          <span>Descrição <small id="desc-count">0/1000</small></span>
+          <textarea name="description" rows="4" maxlength="1000" placeholder="Conte do que se trata, como usar, disciplina, etc."></textarea>
+        </label>
+
+        <label class="field">
+          <span>Link <small>(opcional, mas obrigatório na categoria Links)</small></span>
+          <input type="url" name="link" inputmode="url" placeholder="https://…">
+          <small class="hint" id="link-hint">Para jogos online, cole aqui o link para jogar.</small>
+        </label>
+
+        <label class="field">
+          <span>Arquivo <small>(opcional)</small></span>
+          <input type="file" name="file" id="up-file" class="file-input">
+          <small class="hint">Até 25 MB. Tipos aceitos: PDF, ZIP, RAR, 7Z, DOC(X), PPT(X), XLS(X), TXT, imagens, MP4, WEBM e MP3.</small>
+        </label>
+
+        <label class="field">
+          <span>Imagem de capa <small>(opcional)</small></span>
+          <input type="file" name="cover" id="up-cover" class="file-input" accept="image/png,image/jpeg,image/webp,image/gif">
+          <small class="hint">PNG, JPG, WEBP ou GIF, até 5 MB.</small>
+        </label>
+
+        <p class="form-error" id="upload-error" role="alert" hidden></p>
+        <div class="form-actions">
+          <a class="btn" href="#/inicio">Cancelar</a>
+          <button type="submit" class="btn btn-primary">Publicar</button>
+        </div>
+      </form>
+    </section>
+  </template>
+
+  <template id="tpl-about">
+    <section class="page narrow">
+      <header class="page-head">
+        <div>
+          <p class="eyebrow">Sobre</p>
+          <h2><span data-site-name>Academia Digital</span></h2>
+          <p class="lead">Um espaço feito pelos alunos para compartilhar o que produzem e estudam.</p>
+        </div>
+      </header>
+
+      <div class="panel prose">
+        <h3>Como funciona</h3>
+        <ul>
+          <li>Crie sua conta com e-mail e senha. É preciso estar logado para ver e baixar qualquer material.</li>
+          <li>Use <strong>Enviar</strong> para publicar um arquivo, um link ou os dois.</li>
+          <li>Em cada publicação você pode <strong>baixar</strong> o arquivo ou <strong>acessar</strong> o link (por exemplo, jogar um jogo online).</li>
+        </ul>
+
+        <h3>Categorias</h3>
+        <ul>
+          <li><strong>Jogos:</strong> jogos criados pelos alunos, online ou para baixar.</li>
+          <li><strong>Documentos:</strong> PDFs, slides, planilhas e textos.</li>
+          <li><strong>Links:</strong> sites, pastas do Drive e outras referências.</li>
+          <li><strong>Vídeos:</strong> vídeos enviados ou links do YouTube e similares.</li>
+          <li><strong>Outros:</strong> qualquer material que não se encaixe nas anteriores.</li>
+        </ul>
+
+        <h3>Regras de convivência</h3>
+        <ul>
+          <li>Publique apenas conteúdo que você tem direito de compartilhar.</li>
+          <li>Não envie material ofensivo, ilegal ou com dados pessoais de outras pessoas.</li>
+          <li>Você pode excluir o que publicou. Administradores podem remover qualquer publicação.</li>
+        </ul>
+      </div>
+    </section>
+  </template>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

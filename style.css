@@ -171,6 +171,12 @@ input:focus, select:focus, textarea:focus {
 }
 .form-actions { display: flex; gap: .75rem; justify-content: flex-end; flex-wrap: wrap; }
 
+.check {
+  display: flex; align-items: center; gap: .5rem; width: fit-content;
+  margin: -.35rem 0 1rem; color: var(--muted); font-size: .86rem; cursor: pointer;
+}
+.check input { width: 18px; height: 18px; margin: 0; accent-color: var(--accent); cursor: pointer; }
+
 /* ---------- Login ---------- */
 .auth { min-height: 100vh; display: grid; place-items: center; padding: 1.5rem 1rem; }
 .auth-card {
@@ -215,6 +221,16 @@ input:focus, select:focus, textarea:focus {
   content: ''; position: absolute; left: .8rem; right: .8rem; bottom: -13px; height: 2px;
   background: var(--accent); border-radius: 2px; box-shadow: 0 0 10px var(--accent);
 }
+/* Aba "Enviar": destaque como chamada principal */
+.nav a.nav-cta {
+  margin-left: .35rem; font-weight: 600; color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+.nav a.nav-cta:hover { background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); }
+.nav a.nav-cta.active { background: color-mix(in srgb, var(--accent) 18%, transparent); }
+.nav a.nav-cta.active::after { display: none; }
+
 .top-actions { display: flex; align-items: center; gap: .5rem; margin-left: auto; }
 .user-chip {
   display: inline-flex; align-items: center; gap: .5rem; max-width: 200px;
@@ -252,18 +268,6 @@ input:focus, select:focus, textarea:focus {
 .search input { padding-left: 2.6rem; }
 .toolbar select { flex: 0 1 190px; }
 
-.chips { display: flex; gap: .5rem; overflow-x: auto; padding-bottom: .5rem; margin-bottom: .5rem; scrollbar-width: thin; }
-.chip {
-  flex: none; display: inline-flex; align-items: center; gap: .4rem; min-height: 40px; padding: .4rem .95rem;
-  border-radius: 999px; border: 1px solid var(--border); background: var(--surface);
-  color: var(--muted); font: 600 .86rem var(--font); cursor: pointer; transition: all .15s;
-}
-.chip svg { width: 16px; height: 16px; }
-.chip:hover { color: var(--text); border-color: var(--chip, var(--accent)); }
-.chip.active {
-  color: var(--text); border-color: var(--chip, var(--accent));
-  background: color-mix(in srgb, var(--chip, var(--accent)) 14%, var(--surface));
-}
 .count { color: var(--muted); font-size: .88rem; margin: .5rem 0 1rem; }
 
 /* ---------- Cards ---------- */
@@ -321,7 +325,6 @@ input:focus, select:focus, textarea:focus {
 
 .empty { grid-column: 1 / -1; text-align: center; padding: 3rem 1rem; color: var(--muted); border: 1px dashed var(--border); border-radius: var(--radius); }
 .empty h3 { color: var(--text); margin-bottom: .5rem; }
-.empty .btn { margin-top: 1rem; }
 
 /* ---------- Rodapé / aviso ---------- */
 .footer { text-align: center; padding: 1.5rem 1rem 2rem; color: var(--muted); font-size: .85rem; border-top: 1px solid var(--border); }
@@ -338,11 +341,12 @@ input:focus, select:focus, textarea:focus {
 .toast.error { border-color: var(--danger); }
 
 /* ---------- Responsivo ---------- */
-@media (max-width: 920px) {
+@media (max-width: 1180px) {
   .menu-btn { display: inline-grid; }
   .nav {
     position: fixed; top: var(--topbar-h); left: 0; right: 0; margin: 0;
     flex-direction: column; gap: .15rem; padding: .75rem 1rem 1rem;
+    max-height: calc(100vh - var(--topbar-h)); overflow-y: auto;
     background: var(--surface); border-bottom: 1px solid var(--border); box-shadow: var(--shadow);
     display: none;
   }
@@ -350,13 +354,16 @@ input:focus, select:focus, textarea:focus {
   .nav a { padding: .8rem 1rem; font-size: 1rem; }
   .nav a.active { background: var(--surface-2); }
   .nav a.active::after { display: none; }
+  .nav a.nav-cta { margin: .4rem 0 0; text-align: center; }
+}
+
+@media (max-width: 640px) {
   .user-chip { display: none; }
 }
 
 @media (max-width: 520px) {
   .container { padding-top: 1.25rem; }
   .grid { grid-template-columns: 1fr; }
-  .page-head .btn { width: 100%; }
   .form-actions .btn { flex: 1; }
   .toolbar select { flex: 1 1 100%; }
   .auth-card { padding: 1.5rem 1.1rem; }
