@@ -1,9 +1,0 @@
-// =====================================================
-//  CONFIGURAÇÃO DO SITE
-//  Aqui ficam o nome do site e as chaves PÚBLICAS do Supabase.
-// =====================================================
-window.APP_CONFIG = {
-  SITE_NAME: "Academia Digital",
-  SUPABASE_URL: "https://qzuciaabqfvopuejghri.supabase.co",
-  SUPABASE_KEY: "sb_publishable_M6U5YPVrqnXU7bhEaqNBRw_DF9nrVgW",
-};
