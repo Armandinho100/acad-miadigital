@@ -105,13 +105,14 @@ img { max-width: 100%; display: block; }
 
 /* ---------- Botões e campos ---------- */
 .btn {
-  display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+  display: inline-flex; align-items: center; justify-content: center; gap: .45rem;
   min-height: 44px; padding: .6rem 1.1rem;
   border-radius: 12px; border: 1px solid var(--border);
   background: var(--surface-2); color: var(--text);
   font: 600 .92rem var(--font); text-decoration: none; cursor: pointer;
   transition: transform .15s, border-color .15s, background .15s, box-shadow .15s;
 }
+.btn svg { width: 16px; height: 16px; flex-shrink: 0; }
 .btn:hover { border-color: var(--accent); }
 .btn:active { transform: translateY(1px); }
 .btn:disabled { opacity: .6; cursor: not-allowed; }
@@ -120,10 +121,18 @@ img { max-width: 100%; display: block; }
   color: var(--accent-ink); border-color: transparent; box-shadow: var(--btn-glow);
 }
 .btn-primary:hover { filter: brightness(1.08); border-color: transparent; }
-.btn-danger { color: var(--danger); }
-.btn-danger:hover { border-color: var(--danger); background: color-mix(in srgb, var(--danger) 10%, var(--surface-2)); }
+.btn-danger {
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 35%, var(--border));
+  background: color-mix(in srgb, var(--danger) 7%, var(--surface-2));
+}
+.btn-danger:hover {
+  border-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 15%, var(--surface-2));
+}
 .btn-block { width: 100%; }
 .btn-sm { min-height: 38px; padding: .42rem .8rem; font-size: .85rem; }
+.btn-icon-only { padding: .42rem .65rem; min-width: 38px; }
 
 .icon-btn {
   display: inline-grid; place-items: center; width: 44px; height: 44px;
@@ -135,7 +144,7 @@ img { max-width: 100%; display: block; }
 .icon-btn svg { width: 20px; height: 20px; }
 
 .field { display: grid; gap: .4rem; margin-bottom: 1rem; }
-.field > span { font-size: .88rem; font-weight: 600; }
+.field > span, .field label > span { font-size: .88rem; font-weight: 600; }
 .field small { color: var(--muted); font-weight: 400; }
 .hint { color: var(--muted); font-size: .8rem; }
 
@@ -162,6 +171,32 @@ input:focus, select:focus, textarea:focus {
   margin-right: .75rem; padding: .5rem .85rem; border-radius: 10px;
   border: 1px solid var(--border); background: var(--surface-2); color: var(--text);
   font: 600 .85rem var(--font); cursor: pointer;
+}
+
+.file-chip {
+  display: flex; align-items: center; justify-content: space-between; gap: .6rem;
+  padding: .5rem .75rem; border-radius: 10px;
+  background: var(--surface-2); border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--border));
+  font-size: .85rem; color: var(--text);
+}
+.file-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chip-clear {
+  display: inline-grid; place-items: center; width: 28px; height: 28px; flex-shrink: 0;
+  border-radius: 8px; border: 1px solid color-mix(in srgb, var(--danger) 40%, var(--border));
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+  color: var(--danger); cursor: pointer;
+}
+.chip-clear:hover { background: color-mix(in srgb, var(--danger) 20%, transparent); }
+.chip-clear svg { width: 15px; height: 15px; }
+
+.cover-preview-wrap {
+  display: flex; align-items: center; gap: .85rem; flex-wrap: wrap;
+  padding: .65rem; border-radius: 12px;
+  background: var(--surface-2); border: 1px solid var(--border);
+}
+.cover-preview-wrap img {
+  width: 140px; height: 80px; object-fit: cover; border-radius: 8px;
+  border: 1px solid var(--border);
 }
 
 .form-error {
@@ -221,7 +256,6 @@ input:focus, select:focus, textarea:focus {
   content: ''; position: absolute; left: .8rem; right: .8rem; bottom: -13px; height: 2px;
   background: var(--accent); border-radius: 2px; box-shadow: 0 0 10px var(--accent);
 }
-/* Aba separada para os administradores */
 .nav a.nav-mod {
   display: inline-flex; align-items: center; gap: .4rem;
   color: var(--accent-2);
@@ -240,7 +274,6 @@ input:focus, select:focus, textarea:focus {
   padding: .05rem .45rem; border-radius: 999px; font-size: .72rem; font-weight: 700;
   background: var(--accent-2); color: var(--accent-ink);
 }
-/* Aba "Enviar": destaque como chamada principal */
 .nav a.nav-cta {
   margin-left: .35rem; font-weight: 600; color: var(--accent);
   border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
@@ -322,6 +355,11 @@ input:focus, select:focus, textarea:focus {
 .notices-list {
   display: grid; gap: .85rem; margin-top: 1.1rem;
 }
+.notices-more-wrap {
+  margin-top: .85rem;
+  display: flex;
+  justify-content: center;
+}
 .notice-item {
   position: relative;
   padding: 1rem 1.15rem;
@@ -392,7 +430,7 @@ input:focus, select:focus, textarea:focus {
 .count { color: var(--muted); font-size: .88rem; margin: .5rem 0 1rem; }
 
 /* ---------- Cards ---------- */
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.1rem; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 1.1rem; }
 
 .card {
   --cat: var(--accent);
@@ -434,8 +472,11 @@ input:focus, select:focus, textarea:focus {
   display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
 }
 .meta { display: flex; flex-wrap: wrap; gap: .25rem .75rem; color: var(--muted); font-size: .78rem; margin-top: .25rem; }
-.card-actions { display: flex; flex-wrap: wrap; gap: .5rem; padding: .75rem 1.1rem 1.1rem; }
-.card-actions .btn { flex: 1 1 auto; }
+.card-actions {
+  display: flex; align-items: center; flex-wrap: wrap; gap: .5rem;
+  padding: .75rem 1.1rem 1.1rem;
+}
+.card-actions .btn-main { flex: 1 1 110px; }
 .card-actions .btn-danger { flex: 0 0 auto; }
 
 /* Esqueleto de carregamento */
