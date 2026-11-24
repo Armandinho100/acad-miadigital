@@ -1,7 +1,7 @@
 // =====================================================
 //  ACADEMIA DIGITAL — lógica do site
 //  Login, mural de avisos, listagem, moderação,
-//  envio, privacidade e exclusão de materiais.
+//  envio, privacidade, TCC e exclusão de materiais.
 // =====================================================
 (() => {
   'use strict';
@@ -84,6 +84,23 @@
     toastTimer = setTimeout(() => t.classList.remove('show'), 4200);
   }
 
+  async function copyToClipboard(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    return ok;
+  }
+
   // ---------- Ícones e categorias ----------
   const ICON_PATHS = {
     jogos: '<rect x="2.5" y="7" width="19" height="11" rx="4"/><path d="M7 10.5v4M5 12.5h4"/><circle cx="15.5" cy="11.5" r=".7"/><circle cx="18" cy="13.5" r=".7"/>',
@@ -91,8 +108,10 @@
     links: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
     videos: '<rect x="3" y="5" width="18" height="14" rx="3"/><path d="m10 9 5 3-5 3z"/>',
     outros: '<path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/>',
+    tcc: '<path d="M22 10 12 5 2 10l10 5 10-5z"/><path d="M6 12v5c0 1.7 2.7 3 6 3s6-1.3 6-3v-5"/><path d="M22 10v6"/>',
     download: '<path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M5 20h14"/>',
     external: '<path d="M14 4h6v6M20 4l-9 9"/><path d="M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4"/>',
+    copy: '<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
     x: '<path d="M18 6 6 18M6 6l12 12"/>',
     check: '<path d="M20 6 9 17l-5-5"/>',
     clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
@@ -109,6 +128,7 @@
     links: { label: 'Links', action: 'Acessar' },
     videos: { label: 'Vídeos', action: 'Assistir' },
     outros: { label: 'Outros', action: 'Acessar' },
+    tcc: { label: 'TCC', action: 'Abrir TCC' },
   };
 
   const PAGES = {
@@ -118,8 +138,9 @@
     links: { eyebrow: 'Categoria', title: 'Links', sub: 'Sites, pastas e referências úteis.' },
     videos: { eyebrow: 'Categoria', title: 'Vídeos', sub: 'Vídeos enviados e links de plataformas de vídeo.' },
     outros: { eyebrow: 'Categoria', title: 'Outros', sub: 'Materiais que não se encaixam nas demais categorias.' },
+    tcc: { eyebrow: 'Trabalho de Conclusão de Curso', title: 'TCC', sub: 'Anteprojetos, monografias, apresentações, códigos e referências de TCC.' },
   };
-  const ROUTES = ['inicio', 'jogos', 'documentos', 'links', 'videos', 'outros', 'moderacao', 'enviar', 'sobre'];
+  const ROUTES = ['inicio', 'jogos', 'documentos', 'links', 'videos', 'outros', 'tcc', 'moderacao', 'enviar', 'sobre'];
 
   // ---------- Estado ----------
   const state = {
@@ -680,6 +701,14 @@
     window.location.href = data.signedUrl;
   }
 
+  async function copyPostLink(id) {
+    const p = findPostById(id);
+    const link = p && p.link_url ? safeUrl(p.link_url) : null;
+    if (!link) return toast('Este material não possui link externo.', 'error');
+    const ok = await copyToClipboard(link);
+    toast(ok ? 'Link copiado para a área de transferência!' : 'Não foi possível copiar o link.', ok ? 'success' : 'error');
+  }
+
   async function approvePost(id, btn) {
     if (!isAdmin()) return toast('Apenas os administradores podem aprovar envios.', 'error');
     const p = state.pendingPosts.find((x) => x.id === id);
@@ -852,6 +881,7 @@
         </div>
         <div class="card-actions">
           ${link ? `<a class="btn btn-primary btn-sm btn-main" href="${esc(link)}" target="_blank" rel="noopener noreferrer">${icon('external')}${esc(meta.action)}</a>` : ''}
+          ${link ? `<button type="button" class="btn btn-sm btn-icon-only" data-action="copy-link" data-id="${esc(p.id)}" aria-label="Copiar link de ${esc(p.title)}" title="Copiar link">${icon('copy')}</button>` : ''}
           ${p.file_path ? `<button type="button" class="btn btn-sm btn-main${link ? '' : ' btn-primary'}" data-action="download" data-id="${esc(p.id)}">${icon('download')}Baixar</button>` : ''}
           ${canManageAccess(p) ? `<button type="button" class="btn btn-sm btn-icon-only" data-action="access" data-id="${esc(p.id)}" aria-label="Gerir acesso de ${esc(p.title)}" title="Gerir quem tem acesso">${icon('users')}</button>` : ''}
           ${canDelete() ? `<button type="button" class="btn btn-sm btn-danger btn-icon-only" data-action="delete" data-id="${esc(p.id)}" aria-label="Excluir ${esc(p.title)}" title="Excluir material">${icon('x')}</button>` : ''}
@@ -891,6 +921,7 @@
     const btn = e.target.closest('[data-action]');
     if (!btn) return;
     if (btn.dataset.action === 'download') downloadPost(btn.dataset.id, btn);
+    if (btn.dataset.action === 'copy-link') copyPostLink(btn.dataset.id);
     if (btn.dataset.action === 'access') openAccessModal(btn.dataset.id);
     if (btn.dataset.action === 'delete') deletePost(btn.dataset.id, btn, false);
   }
@@ -1025,6 +1056,7 @@
       links: 'Cola o endereço do site ou da pasta que queres partilhar.',
       videos: 'Cola o link do vídeo (YouTube, por exemplo) ou envia o arquivo abaixo.',
       outros: 'Opcional: link relacionado com o material.',
+      tcc: 'Envia PDF/DOCX/ZIP do TCC ou cola o link do Google Docs, Overleaf, GitHub ou apresentação.',
     };
     const updateHint = () => { $('#link-hint').textContent = hints[select.value]; };
     select.addEventListener('change', updateHint);
