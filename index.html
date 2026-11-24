@@ -186,6 +186,9 @@
         </form>
 
         <div id="notices-list" class="notices-list"></div>
+        <div id="notices-more-wrap" class="notices-more-wrap" hidden>
+          <button type="button" id="notices-more-btn" class="btn btn-sm"></button>
+        </div>
       </section>
 
       <div class="toolbar">
@@ -226,7 +229,7 @@
         <div>
           <p class="eyebrow">Compartilhar</p>
           <h2>Enviar material</h2>
-          <p class="lead">Publique um arquivo, um link, ou os dois. Após aprovação da moderação, ficará visível para todos os alunos logados.</p>
+          <p class="lead" id="upload-lead">Publique um arquivo, um link, ou os dois. Após aprovação da moderação, ficará visível para todos os alunos logados.</p>
         </div>
       </header>
 
@@ -252,22 +255,35 @@
           <small class="hint" id="link-hint">Para jogos online, cole aqui o link para jogar.</small>
         </label>
 
-        <label class="field">
-          <span>Arquivo <small>(opcional)</small></span>
+        <div class="field">
+          <label for="up-file"><span>Arquivo <small>(opcional)</small></span></label>
           <input type="file" name="file" id="up-file" class="file-input">
+          <div id="file-preview" class="file-chip" hidden>
+            <span id="file-preview-text"></span>
+            <button type="button" id="clear-file-btn" class="chip-clear" aria-label="Remover arquivo selecionado" title="Remover arquivo">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
           <small class="hint">Até 25 MB. Tipos aceitos: PDF, ZIP, RAR, 7Z, DOC(X), PPT(X), XLS(X), TXT, imagens, MP4, WEBM e MP3.</small>
-        </label>
+        </div>
 
-        <label class="field">
-          <span>Imagem de capa <small>(opcional)</small></span>
+        <div class="field">
+          <label for="up-cover"><span>Imagem de capa <small>(opcional)</small></span></label>
           <input type="file" name="cover" id="up-cover" class="file-input" accept="image/png,image/jpeg,image/webp,image/gif">
+          <div id="cover-preview-wrap" class="cover-preview-wrap" hidden>
+            <img id="cover-preview-img" src="" alt="Prévia da capa">
+            <button type="button" id="clear-cover-btn" class="btn btn-sm btn-danger">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+              Remover capa
+            </button>
+          </div>
           <small class="hint">PNG, JPG, WEBP ou GIF, até 5 MB.</small>
-        </label>
+        </div>
 
         <p class="form-error" id="upload-error" role="alert" hidden></p>
         <div class="form-actions">
           <a class="btn" href="#/inicio">Cancelar</a>
-          <button type="submit" class="btn btn-primary">Publicar</button>
+          <button type="submit" id="upload-submit-btn" class="btn btn-primary">Publicar</button>
         </div>
       </form>
     </section>
