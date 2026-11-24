@@ -1,7 +1,7 @@
 // =====================================================
 //  ACADEMIA DIGITAL — lógica do site
 //  Login, mural de avisos, listagem, moderação,
-//  envio e exclusão de materiais usando o Supabase.
+//  envio, privacidade e exclusão de materiais.
 // =====================================================
 (() => {
   'use strict';
@@ -24,7 +24,6 @@
     { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
   ));
 
-  // Só aceita links http(s). Bloqueia "javascript:" e similares.
   function safeUrl(u) {
     try {
       const x = new URL(String(u).trim());
@@ -81,6 +80,8 @@
     check: '<path d="M20 6 9 17l-5-5"/>',
     clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
     edit: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
+    lock: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
+    users: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
   };
   const icon = (name) =>
     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON_PATHS[name] || ''}</svg>`;
@@ -107,6 +108,8 @@
   const state = {
     user: null,
     profile: null,
+    usersList: [],
+    usersLoaded: false,
     posts: [],
     pendingPosts: [],
     notices: [],
@@ -120,6 +123,7 @@
 
   const isAdmin = () => Boolean(state.profile && state.profile.role === 'admin');
   const canDelete = () => isAdmin();
+  const canManageAccess = (p) => Boolean(p && p.visibility === 'private' && (isAdmin() || p.user_id === state.user?.id));
 
   // ---------- Telas ----------
   const screens = { splash: $('#splash'), auth: $('#auth-view'), app: $('#app') };
@@ -127,7 +131,6 @@
     Object.entries(screens).forEach(([key, el]) => { el.hidden = key !== name; });
   }
 
-  // Nome do site e ano
   document.title = SITE;
   $$('[data-site-name]').forEach((n) => { n.textContent = SITE; });
   $('#year').textContent = new Date().getFullYear();
@@ -153,7 +156,7 @@
     const html = document.documentElement;
     const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
     html.setAttribute('data-theme', next);
-    try { localStorage.setItem('ad-theme', next); } catch (_) { /* ignora */ }
+    try { localStorage.setItem('ad-theme', next); } catch (_) {}
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute('content', next === 'dark' ? '#07080c' : '#f3f5f9');
   });
@@ -182,7 +185,6 @@
     $('#form-register').hidden = which !== 'register';
   }));
 
-  // "Mostrar senha"
   $$('.toggle-pass').forEach((cb) => cb.addEventListener('change', () => {
     const input = $('input[name="password"]', cb.closest('form'));
     if (input) input.type = cb.checked ? 'text' : 'password';
@@ -276,11 +278,26 @@
     return { name: (user.user_metadata && user.user_metadata.name) || user.email.split('@')[0], role: 'user' };
   }
 
+  async function loadAllUsers() {
+    if (state.usersLoaded) return state.usersList;
+    const { data, error } = await sb.from('profiles')
+      .select('id, name, role')
+      .order('name', { ascending: true })
+      .limit(500);
+    if (!error && data) {
+      state.usersList = data;
+      state.usersLoaded = true;
+    }
+    return state.usersList;
+  }
+
   async function handleSession(session) {
     if (!session) {
       currentUserId = null;
       state.user = null;
       state.profile = null;
+      state.usersList = [];
+      state.usersLoaded = false;
       state.posts = [];
       state.pendingPosts = [];
       state.notices = [];
@@ -294,7 +311,7 @@
       return;
     }
     if (currentUserId === session.user.id && state.user) {
-      state.user = session.user; // apenas renovação do token
+      state.user = session.user;
       return;
     }
     currentUserId = session.user.id;
@@ -312,7 +329,6 @@
     route();
   }
 
-  // O setTimeout evita travar o cliente do Supabase dentro do callback
   sb.auth.onAuthStateChange((_event, session) => {
     setTimeout(() => handleSession(session), 0);
   });
@@ -495,6 +511,94 @@
     toast('Aviso excluído.', 'success');
   }
 
+  // ---------- Checklist de alunos (Privacidade) ----------
+  function renderUsersChecklist(container, selectedSet, excludeUserId, filterTerm = '') {
+    const term = filterTerm.trim().toLowerCase();
+    const candidates = state.usersList.filter((u) =>
+      u.id !== excludeUserId
+      && u.role !== 'admin'
+      && (!term || (u.name || '').toLowerCase().includes(term))
+    );
+
+    if (candidates.length === 0) {
+      container.innerHTML = '<p class="hint" style="padding:.5rem;">Nenhum aluno encontrado.</p>';
+      return;
+    }
+
+    container.innerHTML = candidates.map((u) => `
+      <label class="user-check-item">
+        <input type="checkbox" value="${esc(u.id)}" ${selectedSet.has(u.id) ? 'checked' : ''}>
+        <span>${esc(u.name || 'Aluno')}</span>
+      </label>
+    `).join('');
+  }
+
+  // ---------- Modal de gerenciamento de acesso ----------
+  const accessModal = $('#access-modal');
+  let modalPost = null;
+  let modalSelected = new Set();
+
+  async function openAccessModal(postId) {
+    const p = findPostById(postId);
+    if (!p || !canManageAccess(p)) return;
+    modalPost = p;
+    modalSelected = new Set();
+
+    $('#access-modal-title').textContent = `Acesso: ${p.title}`;
+    const listEl = $('#access-users-list');
+    const searchEl = $('#access-search');
+    searchEl.value = '';
+    listEl.innerHTML = '<p class="hint" style="padding:.5rem;">Carregando alunos…</p>';
+    accessModal.showModal();
+
+    await loadAllUsers();
+    const { data, error } = await sb.from('post_access').select('user_id').eq('post_id', p.id);
+    if (!error && data) {
+      data.forEach((row) => modalSelected.add(row.user_id));
+    }
+
+    renderUsersChecklist(listEl, modalSelected, p.user_id, '');
+  }
+
+  $('#access-search').addEventListener('input', (e) => {
+    if (!modalPost) return;
+    renderUsersChecklist($('#access-users-list'), modalSelected, modalPost.user_id, e.target.value);
+  });
+
+  $('#access-users-list').addEventListener('change', (e) => {
+    if (e.target.type !== 'checkbox') return;
+    if (e.target.checked) modalSelected.add(e.target.value);
+    else modalSelected.delete(e.target.value);
+  });
+
+  $('#close-access-modal').addEventListener('click', () => accessModal.close());
+  $('#cancel-access-btn').addEventListener('click', () => accessModal.close());
+
+  $('#save-access-btn').addEventListener('click', async () => {
+    if (!modalPost) return;
+    const btn = $('#save-access-btn');
+    setBusy(btn, true, 'Salvando…');
+
+    const { error: delErr } = await sb.from('post_access').delete().eq('post_id', modalPost.id);
+    if (delErr) {
+      setBusy(btn, false);
+      return toast('Não foi possível atualizar as permissões.', 'error');
+    }
+
+    const rows = Array.from(modalSelected).map((uid) => ({ post_id: modalPost.id, user_id: uid }));
+    if (rows.length > 0) {
+      const { error: insErr } = await sb.from('post_access').insert(rows);
+      if (insErr) {
+        setBusy(btn, false);
+        return toast('Erro ao salvar alunos selecionados.', 'error');
+      }
+    }
+
+    setBusy(btn, false);
+    accessModal.close();
+    toast('Permissões de acesso atualizadas!', 'success');
+  });
+
   // ---------- Dados: Materiais ----------
   async function attachCovers(items) {
     const paths = items.map((p) => p.cover_path).filter(Boolean);
@@ -507,6 +611,7 @@
   }
 
   async function loadPosts() {
+    // O Supabase RLS filtra automaticamente: públicos aprovados + privados em que o usuário é dono, admin ou convidado
     const { data, error } = await sb.from('posts').select('*')
       .eq('status', 'approved')
       .order('created_at', { ascending: false }).limit(500);
@@ -712,11 +817,13 @@
     const cover = state.covers[p.cover_path];
     const link = p.link_url ? safeUrl(p.link_url) : null;
     const size = p.file_size ? fmtSize(p.file_size) : '';
+    const isPriv = p.visibility === 'private';
     return `
       <article class="card" data-cat="${cat}">
         <div class="card-cover">
           ${cover ? `<img src="${esc(cover)}" alt="" loading="lazy">` : icon(cat)}
           <span class="badge">${icon(cat)}${esc(meta.label)}</span>
+          ${isPriv ? `<span class="badge badge-private" title="Acesso restrito">${icon('lock')}Privado</span>` : ''}
         </div>
         <div class="card-body">
           <h3>${esc(p.title)}</h3>
@@ -730,6 +837,7 @@
         <div class="card-actions">
           ${link ? `<a class="btn btn-primary btn-sm btn-main" href="${esc(link)}" target="_blank" rel="noopener noreferrer">${icon('external')}${esc(meta.action)}</a>` : ''}
           ${p.file_path ? `<button type="button" class="btn btn-sm btn-main${link ? '' : ' btn-primary'}" data-action="download" data-id="${esc(p.id)}">${icon('download')}Baixar</button>` : ''}
+          ${canManageAccess(p) ? `<button type="button" class="btn btn-sm btn-icon-only" data-action="access" data-id="${esc(p.id)}" aria-label="Gerenciar acesso de ${esc(p.title)}" title="Gerenciar quem tem acesso">${icon('users')}</button>` : ''}
           ${canDelete() ? `<button type="button" class="btn btn-sm btn-danger btn-icon-only" data-action="delete" data-id="${esc(p.id)}" aria-label="Excluir ${esc(p.title)}" title="Excluir material">${icon('x')}</button>` : ''}
         </div>
       </article>`;
@@ -767,6 +875,7 @@
     const btn = e.target.closest('[data-action]');
     if (!btn) return;
     if (btn.dataset.action === 'download') downloadPost(btn.dataset.id, btn);
+    if (btn.dataset.action === 'access') openAccessModal(btn.dataset.id);
     if (btn.dataset.action === 'delete') deletePost(btn.dataset.id, btn, false);
   }
 
@@ -777,11 +886,13 @@
     const cover = state.covers[p.cover_path];
     const link = p.link_url ? safeUrl(p.link_url) : null;
     const size = p.file_size ? fmtSize(p.file_size) : '';
+    const isPriv = p.visibility === 'private';
     return `
       <article class="card" data-cat="${cat}">
         <div class="card-cover">
           ${cover ? `<img src="${esc(cover)}" alt="" loading="lazy">` : icon(cat)}
           <span class="badge">${icon(cat)}${esc(meta.label)}</span>
+          ${isPriv ? `<span class="badge badge-private" title="Acesso restrito">${icon('lock')}Privado</span>` : ''}
         </div>
         <div class="card-body">
           <h3>${esc(p.title)}</h3>
@@ -795,6 +906,7 @@
         <div class="card-actions">
           ${link ? `<a class="btn btn-sm btn-main" href="${esc(link)}" target="_blank" rel="noopener noreferrer">${icon('external')}${esc(meta.action)}</a>` : ''}
           ${p.file_path ? `<button type="button" class="btn btn-sm btn-main" data-action="download" data-id="${esc(p.id)}">${icon('download')}Baixar</button>` : ''}
+          ${isPriv ? `<button type="button" class="btn btn-sm btn-icon-only" data-action="access" data-id="${esc(p.id)}" aria-label="Gerenciar acesso" title="Ver/editar alunos liberados">${icon('users')}</button>` : ''}
           <button type="button" class="btn btn-primary btn-sm btn-main" data-action="approve" data-id="${esc(p.id)}">${icon('check')}Aprovar</button>
           <button type="button" class="btn btn-sm btn-danger btn-icon-only" data-action="reject" data-id="${esc(p.id)}" aria-label="Recusar ${esc(p.title)}" title="Recusar envio">${icon('x')}</button>
         </div>
@@ -825,6 +937,7 @@
     if (!btn) return;
     const id = btn.dataset.id;
     if (btn.dataset.action === 'download') downloadPost(id, btn);
+    if (btn.dataset.action === 'access') openAccessModal(id);
     if (btn.dataset.action === 'approve') approvePost(id, btn);
     if (btn.dataset.action === 'reject') deletePost(id, btn, true);
   }
@@ -846,8 +959,12 @@
   }
 
   // ---------- Página: enviar ----------
+  let uploadSelectedUsers = new Set();
+
   function renderUpload() {
     view.replaceChildren($('#tpl-upload').content.cloneNode(true));
+    uploadSelectedUsers = new Set();
+
     const form = $('#form-upload');
     const select = $('#up-category');
     select.innerHTML = Object.entries(CATS).map(([k, v]) => `<option value="${k}">${esc(v.label)}</option>`).join('');
@@ -856,9 +973,36 @@
       $('#upload-lead').textContent = 'Publique um arquivo, um link, ou os dois diretamente no site.';
       $('#upload-submit-btn').textContent = 'Publicar agora';
     } else {
-      $('#upload-lead').textContent = 'Publique um arquivo, um link, ou os dois. Após aprovação da moderação, ficará visível para todos os alunos logados.';
+      $('#upload-lead').textContent = 'Publique um arquivo, um link, ou os dois. Após aprovação da moderação, ficará visível conforme a privacidade escolhida.';
       $('#upload-submit-btn').textContent = 'Enviar para aprovação';
     }
+
+    // Controle Público / Privado
+    const privBox = $('#private-users-box');
+    const usersListEl = $('#up-users-list');
+    const userSearchEl = $('#up-user-search');
+
+    $$('input[name="visibility"]', form).forEach((radio) => {
+      radio.addEventListener('change', async () => {
+        const isPriv = radio.value === 'private' && radio.checked;
+        privBox.hidden = !isPriv;
+        if (isPriv) {
+          usersListEl.innerHTML = '<p class="hint" style="padding:.5rem;">Carregando lista de alunos…</p>';
+          await loadAllUsers();
+          renderUsersChecklist(usersListEl, uploadSelectedUsers, state.user.id, userSearchEl.value);
+        }
+      });
+    });
+
+    userSearchEl.addEventListener('input', () => {
+      renderUsersChecklist(usersListEl, uploadSelectedUsers, state.user.id, userSearchEl.value);
+    });
+
+    usersListEl.addEventListener('change', (e) => {
+      if (e.target.type !== 'checkbox') return;
+      if (e.target.checked) uploadSelectedUsers.add(e.target.value);
+      else uploadSelectedUsers.delete(e.target.value);
+    });
 
     const hints = {
       jogos: 'Para jogos online, cole aqui o link para jogar. Se preferir, envie o .zip do jogo no campo Arquivo.',
@@ -874,7 +1018,6 @@
     const desc = form.elements.description;
     desc.addEventListener('input', () => { $('#desc-count').textContent = `${desc.value.length}/1000`; });
 
-    // Prévia do arquivo selecionado
     const fileInput = $('#up-file');
     const filePreview = $('#file-preview');
     const filePreviewText = $('#file-preview-text');
@@ -891,7 +1034,6 @@
     });
     $('#clear-file-btn').addEventListener('click', clearFile);
 
-    // Prévia da imagem de capa
     const coverInput = $('#up-cover');
     const coverWrap = $('#cover-preview-wrap');
     const coverImg = $('#cover-preview-img');
@@ -926,6 +1068,7 @@
     errBox.hidden = true;
 
     const category = form.elements.category.value;
+    const visibility = form.elements.visibility.value === 'private' ? 'private' : 'public';
     const title = form.elements.title.value.trim();
     const description = form.elements.description.value.trim();
     const rawLink = form.elements.link.value.trim();
@@ -962,18 +1105,30 @@
     try {
       const filePath = file ? await upload(file, '') : null;
       const coverPath = cover ? await upload(cover, 'capa-') : null;
-      const { error } = await sb.from('posts').insert({
+
+      const { data: inserted, error } = await sb.from('posts').insert({
         user_id: state.user.id,
         title,
         description,
         category,
+        visibility,
         link_url: link,
         file_path: filePath,
         file_name: file ? file.name : null,
         file_size: file ? file.size : null,
         cover_path: coverPath,
-      });
-      if (error) throw error;
+      }).select('id').single();
+
+      if (error || !inserted) throw error || new Error('Falha ao inserir post');
+
+      if (visibility === 'private' && uploadSelectedUsers.size > 0) {
+        const accessRows = Array.from(uploadSelectedUsers).map((uid) => ({
+          post_id: inserted.id,
+          user_id: uid,
+        }));
+        const { error: accErr } = await sb.from('post_access').insert(accessRows);
+        if (accErr) console.error('Erro ao salvar permissões iniciais:', accErr);
+      }
     } catch (err) {
       console.error(err);
       if (uploaded.length) await sb.storage.from(BUCKET).remove(uploaded);
