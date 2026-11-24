@@ -58,6 +58,23 @@
     return `${date} às ${time}`;
   }
 
+  function formatSupabaseError(err) {
+    if (!err) return 'Erro desconhecido.';
+    if (typeof err === 'string') return err;
+    const parts = [
+      err.message,
+      err.details,
+      err.hint,
+      err.error_description,
+    ].filter(Boolean);
+    if (parts.length) return parts.join(' — ');
+    try {
+      return JSON.stringify(err);
+    } catch (_) {
+      return 'Erro ao comunicar com o servidor.';
+    }
+  }
+
   let toastTimer;
   function toast(msg, type = 'info') {
     const t = $('#toast');
@@ -144,7 +161,7 @@
     showScreen('none');
     $('#setup-warning').hidden = false;
     if (!window.supabase) {
-      $('#setup-warning .lead').textContent = 'Não foi possível carregar a biblioteca do Supabase. Verifique sua conexão com a internet e recarregue a página.';
+      $('#setup-warning .lead').textContent = 'Não foi possível carregar a biblioteca do Supabase. Verifique a ligação à internet e recarregue a página.';
     }
     return;
   }
@@ -233,8 +250,8 @@
     const name = f.elements.name.value.trim();
     const email = f.elements.email.value.trim();
     const password = f.elements.password.value;
-    if (name.length < 2) return setError(f, 'Digite seu nome.');
-    if (!email) return setError(f, 'Digite seu e-mail.');
+    if (name.length < 2) return setError(f, 'Digite o seu nome.');
+    if (!email) return setError(f, 'Digite o seu e-mail.');
     if (password.length < 8) return setError(f, 'A senha precisa ter pelo menos 8 caracteres.');
     const btn = $('button[type="submit"]', f);
     setBusy(btn, true, 'Criando conta…');
@@ -242,7 +259,7 @@
     setBusy(btn, false);
     if (error) return setError(f, authMessage(error));
     if (!data.session) {
-      toast('Conta criada! Confirme seu e-mail para entrar.', 'success');
+      toast('Conta criada! Confirme o seu e-mail para entrar.', 'success');
     }
   });
 
@@ -467,7 +484,7 @@
     if (rawLink && !link) return setError(form, 'Digite um link válido começando com http:// ou https://.');
 
     const btn = $('button[type="submit"]', form);
-    setBusy(btn, true, 'Salvando…');
+    setBusy(btn, true, 'A guardar…');
 
     if (id) {
       const { data, error } = await sb.from('notices')
@@ -548,7 +565,7 @@
     const listEl = $('#access-users-list');
     const searchEl = $('#access-search');
     searchEl.value = '';
-    listEl.innerHTML = '<p class="hint" style="padding:.5rem;">Carregando alunos…</p>';
+    listEl.innerHTML = '<p class="hint" style="padding:.5rem;">A carregar alunos…</p>';
     accessModal.showModal();
 
     await loadAllUsers();
@@ -577,12 +594,12 @@
   $('#save-access-btn').addEventListener('click', async () => {
     if (!modalPost) return;
     const btn = $('#save-access-btn');
-    setBusy(btn, true, 'Salvando…');
+    setBusy(btn, true, 'A guardar…');
 
     const { error: delErr } = await sb.from('post_access').delete().eq('post_id', modalPost.id);
     if (delErr) {
       setBusy(btn, false);
-      return toast('Não foi possível atualizar as permissões.', 'error');
+      return toast(`Não foi possível atualizar as permissões: ${formatSupabaseError(delErr)}`, 'error');
     }
 
     const rows = Array.from(modalSelected).map((uid) => ({ post_id: modalPost.id, user_id: uid }));
@@ -590,7 +607,7 @@
       const { error: insErr } = await sb.from('post_access').insert(rows);
       if (insErr) {
         setBusy(btn, false);
-        return toast('Erro ao salvar alunos selecionados.', 'error');
+        return toast(`Erro ao guardar alunos selecionados: ${formatSupabaseError(insErr)}`, 'error');
       }
     }
 
@@ -611,7 +628,6 @@
   }
 
   async function loadPosts() {
-    // O Supabase RLS filtra automaticamente: públicos aprovados + privados em que o usuário é dono, admin ou convidado
     const { data, error } = await sb.from('posts').select('*')
       .eq('status', 'approved')
       .order('created_at', { ascending: false }).limit(500);
@@ -699,7 +715,7 @@
     const { data, error } = await sb.from('posts').delete().eq('id', id).select('id');
     if (error || !data || data.length === 0) {
       btn.disabled = false;
-      return toast('Você não tem permissão para excluir este item.', 'error');
+      return toast('Não tens permissão para excluir este item.', 'error');
     }
     const paths = [p.file_path, p.cover_path].filter(Boolean);
     if (paths.length) await sb.storage.from(BUCKET).remove(paths);
@@ -837,7 +853,7 @@
         <div class="card-actions">
           ${link ? `<a class="btn btn-primary btn-sm btn-main" href="${esc(link)}" target="_blank" rel="noopener noreferrer">${icon('external')}${esc(meta.action)}</a>` : ''}
           ${p.file_path ? `<button type="button" class="btn btn-sm btn-main${link ? '' : ' btn-primary'}" data-action="download" data-id="${esc(p.id)}">${icon('download')}Baixar</button>` : ''}
-          ${canManageAccess(p) ? `<button type="button" class="btn btn-sm btn-icon-only" data-action="access" data-id="${esc(p.id)}" aria-label="Gerenciar acesso de ${esc(p.title)}" title="Gerenciar quem tem acesso">${icon('users')}</button>` : ''}
+          ${canManageAccess(p) ? `<button type="button" class="btn btn-sm btn-icon-only" data-action="access" data-id="${esc(p.id)}" aria-label="Gerir acesso de ${esc(p.title)}" title="Gerir quem tem acesso">${icon('users')}</button>` : ''}
           ${canDelete() ? `<button type="button" class="btn btn-sm btn-danger btn-icon-only" data-action="delete" data-id="${esc(p.id)}" aria-label="Excluir ${esc(p.title)}" title="Excluir material">${icon('x')}</button>` : ''}
         </div>
       </article>`;
@@ -853,13 +869,13 @@
 
     if (list.length === 0) {
       let title = 'Nada encontrado';
-      let text = 'Tente buscar com outras palavras.';
+      let text = 'Tenta buscar com outras palavras.';
       if (state.posts.length === 0) {
         title = 'Ainda não há materiais aqui';
-        text = 'Seja o primeiro a compartilhar! Use a aba Enviar, no menu.';
+        text = 'Sê o primeiro a partilhar! Usa a aba Enviar, no menu.';
       } else if (!state.filters.q.trim()) {
         title = 'Nada por aqui ainda';
-        text = 'Ainda não há materiais nesta categoria. Use a aba Enviar, no menu, para publicar o primeiro.';
+        text = 'Ainda não há materiais nesta categoria. Usa a aba Enviar, no menu, para publicar o primeiro.';
       }
       grid.innerHTML = `
         <div class="empty">
@@ -906,7 +922,7 @@
         <div class="card-actions">
           ${link ? `<a class="btn btn-sm btn-main" href="${esc(link)}" target="_blank" rel="noopener noreferrer">${icon('external')}${esc(meta.action)}</a>` : ''}
           ${p.file_path ? `<button type="button" class="btn btn-sm btn-main" data-action="download" data-id="${esc(p.id)}">${icon('download')}Baixar</button>` : ''}
-          ${isPriv ? `<button type="button" class="btn btn-sm btn-icon-only" data-action="access" data-id="${esc(p.id)}" aria-label="Gerenciar acesso" title="Ver/editar alunos liberados">${icon('users')}</button>` : ''}
+          ${isPriv ? `<button type="button" class="btn btn-sm btn-icon-only" data-action="access" data-id="${esc(p.id)}" aria-label="Gerir acesso" title="Ver/editar alunos liberados">${icon('users')}</button>` : ''}
           <button type="button" class="btn btn-primary btn-sm btn-main" data-action="approve" data-id="${esc(p.id)}">${icon('check')}Aprovar</button>
           <button type="button" class="btn btn-sm btn-danger btn-icon-only" data-action="reject" data-id="${esc(p.id)}" aria-label="Recusar ${esc(p.title)}" title="Recusar envio">${icon('x')}</button>
         </div>
@@ -925,7 +941,7 @@
       grid.innerHTML = `
         <div class="empty">
           <h3>Nenhum envio pendente</h3>
-          <p>Todos os envios já foram revisados.</p>
+          <p>Todos os envios já foram revistos.</p>
         </div>`;
       return;
     }
@@ -970,14 +986,13 @@
     select.innerHTML = Object.entries(CATS).map(([k, v]) => `<option value="${k}">${esc(v.label)}</option>`).join('');
 
     if (isAdmin()) {
-      $('#upload-lead').textContent = 'Publique um arquivo, um link, ou os dois diretamente no site.';
+      $('#upload-lead').textContent = 'Publica um arquivo, um link, ou ambos diretamente no site.';
       $('#upload-submit-btn').textContent = 'Publicar agora';
     } else {
-      $('#upload-lead').textContent = 'Publique um arquivo, um link, ou os dois. Após aprovação da moderação, ficará visível conforme a privacidade escolhida.';
+      $('#upload-lead').textContent = 'Publica um arquivo, um link, ou ambos. Após aprovação da moderação, ficará visível conforme a privacidade escolhida.';
       $('#upload-submit-btn').textContent = 'Enviar para aprovação';
     }
 
-    // Controle Público / Privado
     const privBox = $('#private-users-box');
     const usersListEl = $('#up-users-list');
     const userSearchEl = $('#up-user-search');
@@ -987,7 +1002,7 @@
         const isPriv = radio.value === 'private' && radio.checked;
         privBox.hidden = !isPriv;
         if (isPriv) {
-          usersListEl.innerHTML = '<p class="hint" style="padding:.5rem;">Carregando lista de alunos…</p>';
+          usersListEl.innerHTML = '<p class="hint" style="padding:.5rem;">A carregar lista de alunos…</p>';
           await loadAllUsers();
           renderUsersChecklist(usersListEl, uploadSelectedUsers, state.user.id, userSearchEl.value);
         }
@@ -1005,11 +1020,11 @@
     });
 
     const hints = {
-      jogos: 'Para jogos online, cole aqui o link para jogar. Se preferir, envie o .zip do jogo no campo Arquivo.',
+      jogos: 'Para jogos online, cola aqui o link para jogar. Se preferires, envia o .zip do jogo no campo Arquivo.',
       documentos: 'Opcional: link do documento (Drive, por exemplo).',
-      links: 'Cole o endereço do site ou da pasta que você quer compartilhar.',
-      videos: 'Cole o link do vídeo (YouTube, por exemplo) ou envie o arquivo abaixo.',
-      outros: 'Opcional: link relacionado ao material.',
+      links: 'Cola o endereço do site ou da pasta que queres partilhar.',
+      videos: 'Cola o link do vídeo (YouTube, por exemplo) ou envia o arquivo abaixo.',
+      outros: 'Opcional: link relacionado com o material.',
     };
     const updateHint = () => { $('#link-hint').textContent = hints[select.value]; };
     select.addEventListener('change', updateHint);
@@ -1064,7 +1079,11 @@
     e.preventDefault();
     const form = e.currentTarget;
     const errBox = $('#upload-error');
-    const fail = (msg) => { errBox.textContent = msg; errBox.hidden = false; errBox.scrollIntoView({ block: 'center', behavior: 'smooth' }); };
+    const fail = (msg) => {
+      errBox.textContent = msg;
+      errBox.hidden = false;
+      errBox.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    };
     errBox.hidden = true;
 
     const category = form.elements.category.value;
@@ -1077,27 +1096,27 @@
 
     if (title.length < 3) return fail('O título precisa ter pelo menos 3 caracteres.');
     const link = rawLink ? safeUrl(rawLink) : null;
-    if (rawLink && !link) return fail('Digite um link válido, começando com http:// ou https://.');
+    if (rawLink && !link) return fail('Digita um link válido, a começar por http:// ou https://.');
     if (category === 'links' && !link) return fail('Na categoria Links, o link é obrigatório.');
-    if (!link && !file) return fail('Envie um arquivo ou informe um link.');
+    if (!link && !file) return fail('Envia um arquivo ou informa um link.');
 
     if (file) {
-      if (!FILE_EXT.includes(getExt(file.name))) return fail('Tipo de arquivo não permitido. Veja a lista de tipos aceitos.');
-      if (file.size > MAX_FILE) return fail('O arquivo passa de 25 MB. Para arquivos grandes, publique um link.');
+      if (!FILE_EXT.includes(getExt(file.name))) return fail('Tipo de arquivo não permitido. Vê a lista de tipos aceites.');
+      if (file.size > MAX_FILE) return fail('O arquivo ultrapassa os 25 MB. Para arquivos grandes, publica um link.');
     }
     if (cover) {
       if (!COVER_EXT.includes(getExt(cover.name))) return fail('A capa precisa ser PNG, JPG, WEBP ou GIF.');
-      if (cover.size > MAX_COVER) return fail('A imagem de capa passa de 5 MB.');
+      if (cover.size > MAX_COVER) return fail('A imagem de capa ultrapassa os 5 MB.');
     }
 
     const btn = $('button[type="submit"]', form);
-    setBusy(btn, true, 'Enviando…');
+    setBusy(btn, true, 'A enviar…');
 
     const uploaded = [];
     const upload = async (f, prefix) => {
       const path = `${state.user.id}/${prefix}${Date.now()}-${safeFileName(f.name)}`;
       const { error } = await sb.storage.from(BUCKET).upload(path, f, { cacheControl: '3600', upsert: false });
-      if (error) throw error;
+      if (error) throw new Error(`Storage: ${formatSupabaseError(error)}`);
       uploaded.push(path);
       return path;
     };
@@ -1119,7 +1138,9 @@
         cover_path: coverPath,
       }).select('id').single();
 
-      if (error || !inserted) throw error || new Error('Falha ao inserir post');
+      if (error || !inserted) {
+        throw new Error(`Banco de dados: ${formatSupabaseError(error)}`);
+      }
 
       if (visibility === 'private' && uploadSelectedUsers.size > 0) {
         const accessRows = Array.from(uploadSelectedUsers).map((uid) => ({
@@ -1127,13 +1148,13 @@
           user_id: uid,
         }));
         const { error: accErr } = await sb.from('post_access').insert(accessRows);
-        if (accErr) console.error('Erro ao salvar permissões iniciais:', accErr);
+        if (accErr) console.error('Erro ao guardar permissões iniciais:', accErr);
       }
     } catch (err) {
       console.error(err);
       if (uploaded.length) await sb.storage.from(BUCKET).remove(uploaded);
       setBusy(btn, false);
-      return fail('Não foi possível publicar. Verifique sua conexão e tente novamente.');
+      return fail(`Não foi possível publicar (${formatSupabaseError(err)}).`);
     }
 
     if (isAdmin()) {
@@ -1141,7 +1162,7 @@
       toast('Material publicado!', 'success');
       location.hash = `#/${category}`;
     } else {
-      toast('Enviado para análise! Um administrador irá revisar antes de publicar.', 'success');
+      toast('Enviado para análise! Um administrador irá rever antes de publicar.', 'success');
       location.hash = '#/inicio';
     }
   }
