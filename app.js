@@ -1,922 +1,537 @@
-// =====================================================
-//  ACADEMIA DIGITAL — lógica do site
-//  Login, mural de avisos, listagem, moderação,
-//  envio e exclusão de materiais usando o Supabase.
-// =====================================================
-(() => {
-  'use strict';
+/* =====================================================
+   ACADEMIA DIGITAL — estilos
+   Tema escuro com neon discreto (padrão) e tema claro.
+   ===================================================== */
 
-  const CFG = window.APP_CONFIG || {};
-  const SITE = CFG.SITE_NAME || 'Academia Digital';
-  const BUCKET = 'materiais';
-  const MB = 1024 * 1024;
-  const MAX_FILE = 25 * MB;
-  const MAX_COVER = 5 * MB;
-  const FILE_EXT = ['pdf', 'zip', 'rar', '7z', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'txt',
-    'png', 'jpg', 'jpeg', 'gif', 'webp', 'mp4', 'webm', 'mp3'];
-  const COVER_EXT = ['png', 'jpg', 'jpeg', 'webp', 'gif'];
+:root {
+  --bg: #07080c;
+  --surface: #0f121a;
+  --surface-2: #151a26;
+  --border: #222a3b;
+  --text: #e9ecf3;
+  --muted: #8e97ab;
+  --accent: #38e0b4;
+  --accent-2: #8f86ff;
+  --accent-ink: #04120d;
+  --danger: #ff6b81;
+  --glow-a: rgba(56, 224, 180, .10);
+  --glow-b: rgba(143, 134, 255, .10);
+  --btn-glow: 0 0 22px rgba(56, 224, 180, .28);
+  --shadow: 0 10px 30px rgba(0, 0, 0, .45);
+  --topbar-bg: rgba(7, 8, 12, .78);
 
-  // ---------- Utilidades ----------
-  const $ = (sel, root = document) => root.querySelector(sel);
-  const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+  --c-jogos: #9a8cff;
+  --c-documentos: #38e0b4;
+  --c-links: #5bb8ff;
+  --c-videos: #ff7a90;
+  --c-outros: #f0b45a;
 
-  const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => (
-    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
-  ));
+  --radius: 16px;
+  --font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-head: 'Sora', var(--font);
+  --topbar-h: 64px;
+}
 
-  // Só aceita links http(s). Bloqueia "javascript:" e similares.
-  function safeUrl(u) {
-    try {
-      const x = new URL(String(u).trim());
-      return x.protocol === 'http:' || x.protocol === 'https:' ? x.href : null;
-    } catch (_) { return null; }
+[data-theme="light"] {
+  --bg: #f3f5f9;
+  --surface: #ffffff;
+  --surface-2: #eef1f7;
+  --border: #dbe0ea;
+  --text: #141824;
+  --muted: #5c657a;
+  --accent: #0b9a76;
+  --accent-2: #5b4fe0;
+  --accent-ink: #ffffff;
+  --danger: #d63a53;
+  --glow-a: rgba(11, 154, 118, .08);
+  --glow-b: rgba(91, 79, 224, .07);
+  --btn-glow: 0 4px 14px rgba(11, 154, 118, .28);
+  --shadow: 0 8px 24px rgba(20, 24, 36, .08);
+  --topbar-bg: rgba(243, 245, 249, .85);
+
+  --c-jogos: #6256e6;
+  --c-documentos: #0b9a76;
+  --c-links: #1f7fd1;
+  --c-videos: #d6405a;
+  --c-outros: #c58116;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+[hidden] { display: none !important; }
+
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.55;
+  color: var(--text);
+  background:
+    radial-gradient(900px 520px at 88% -8%, var(--glow-b), transparent 60%),
+    radial-gradient(760px 420px at -4% 0%, var(--glow-a), transparent 55%),
+    var(--bg);
+  background-attachment: fixed;
+  transition: background-color .25s, color .25s;
+}
+
+h1, h2, h3, h4 { font-family: var(--font-head); line-height: 1.2; margin: 0; letter-spacing: -.01em; }
+p { margin: 0; }
+a { color: var(--accent); }
+img { max-width: 100%; display: block; }
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+
+/* ---------- Carregando ---------- */
+.splash { min-height: 100vh; display: grid; place-items: center; }
+.spinner {
+  width: 38px; height: 38px; border-radius: 50%;
+  border: 3px solid var(--border); border-top-color: var(--accent);
+  animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---------- Logo ---------- */
+.logo { display: inline-grid; place-items: center; width: 34px; height: 34px; color: var(--accent); }
+.logo svg { width: 100%; height: 100%; }
+.logo-2 { stroke: var(--accent-2); }
+
+/* ---------- Botões e campos ---------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: .45rem;
+  min-height: 44px; padding: .6rem 1.1rem;
+  border-radius: 12px; border: 1px solid var(--border);
+  background: var(--surface-2); color: var(--text);
+  font: 600 .92rem var(--font); text-decoration: none; cursor: pointer;
+  transition: transform .15s, border-color .15s, background .15s, box-shadow .15s;
+}
+.btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+.btn:hover { border-color: var(--accent); }
+.btn:active { transform: translateY(1px); }
+.btn:disabled { opacity: .6; cursor: not-allowed; }
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 65%, var(--accent-2)));
+  color: var(--accent-ink); border-color: transparent; box-shadow: var(--btn-glow);
+}
+.btn-primary:hover { filter: brightness(1.08); border-color: transparent; }
+.btn-danger {
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 35%, var(--border));
+  background: color-mix(in srgb, var(--danger) 7%, var(--surface-2));
+}
+.btn-danger:hover {
+  border-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 15%, var(--surface-2));
+}
+.btn-block { width: 100%; }
+.btn-sm { min-height: 38px; padding: .42rem .8rem; font-size: .85rem; }
+.btn-icon-only { padding: .42rem .65rem; min-width: 38px; }
+
+.icon-btn {
+  display: inline-grid; place-items: center; width: 44px; height: 44px;
+  border-radius: 12px; border: 1px solid var(--border);
+  background: var(--surface); color: var(--text); cursor: pointer;
+  transition: border-color .15s, color .15s;
+}
+.icon-btn:hover { border-color: var(--accent); color: var(--accent); }
+.icon-btn svg { width: 20px; height: 20px; }
+
+.field { display: grid; gap: .4rem; margin-bottom: 1rem; }
+.field > span, .field label > span { font-size: .88rem; font-weight: 600; }
+.field small { color: var(--muted); font-weight: 400; }
+.hint { color: var(--muted); font-size: .8rem; }
+
+input[type="text"], input[type="email"], input[type="password"], input[type="url"],
+input[type="search"], select, textarea {
+  width: 100%; min-height: 46px; padding: .65rem .85rem;
+  border-radius: 12px; border: 1px solid var(--border);
+  background: var(--surface); color: var(--text);
+  font: 400 1rem var(--font);
+  transition: border-color .15s, box-shadow .15s;
+}
+textarea { resize: vertical; min-height: 110px; }
+input:focus, select:focus, textarea:focus {
+  outline: none; border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+::placeholder { color: color-mix(in srgb, var(--muted) 80%, transparent); }
+
+.file-input {
+  width: 100%; padding: .55rem; border: 1px dashed var(--border); border-radius: 12px;
+  background: var(--surface); color: var(--muted); font: 400 .9rem var(--font);
+}
+.file-input::file-selector-button {
+  margin-right: .75rem; padding: .5rem .85rem; border-radius: 10px;
+  border: 1px solid var(--border); background: var(--surface-2); color: var(--text);
+  font: 600 .85rem var(--font); cursor: pointer;
+}
+
+.file-chip {
+  display: flex; align-items: center; justify-content: space-between; gap: .6rem;
+  padding: .5rem .75rem; border-radius: 10px;
+  background: var(--surface-2); border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--border));
+  font-size: .85rem; color: var(--text);
+}
+.file-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chip-clear {
+  display: inline-grid; place-items: center; width: 28px; height: 28px; flex-shrink: 0;
+  border-radius: 8px; border: 1px solid color-mix(in srgb, var(--danger) 40%, var(--border));
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+  color: var(--danger); cursor: pointer;
+}
+.chip-clear:hover { background: color-mix(in srgb, var(--danger) 20%, transparent); }
+.chip-clear svg { width: 15px; height: 15px; }
+
+.cover-preview-wrap {
+  display: flex; align-items: center; gap: .85rem; flex-wrap: wrap;
+  padding: .65rem; border-radius: 12px;
+  background: var(--surface-2); border: 1px solid var(--border);
+}
+.cover-preview-wrap img {
+  width: 140px; height: 80px; object-fit: cover; border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.form-error {
+  margin: 0 0 1rem; padding: .65rem .85rem; border-radius: 12px; font-size: .9rem;
+  color: var(--danger); background: color-mix(in srgb, var(--danger) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--danger) 35%, transparent);
+}
+.form-actions { display: flex; gap: .75rem; justify-content: flex-end; flex-wrap: wrap; }
+
+.check {
+  display: flex; align-items: center; gap: .5rem; width: fit-content;
+  margin: -.35rem 0 1rem; color: var(--muted); font-size: .86rem; cursor: pointer;
+}
+.check input { width: 18px; height: 18px; margin: 0; accent-color: var(--accent); cursor: pointer; }
+
+/* ---------- Login ---------- */
+.auth { min-height: 100vh; display: grid; place-items: center; padding: 1.5rem 1rem; }
+.auth-card {
+  width: 100%; max-width: 440px; padding: 2rem 1.5rem;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 22px; box-shadow: var(--shadow);
+}
+.auth-brand { text-align: center; margin-bottom: 1.5rem; display: grid; gap: .5rem; justify-items: center; }
+.auth-brand .logo { width: 52px; height: 52px; }
+.auth-brand h1 { font-size: 1.7rem; }
+.tabs {
+  display: grid; grid-template-columns: 1fr 1fr; gap: .25rem; padding: .25rem;
+  background: var(--surface-2); border-radius: 14px; margin-bottom: 1.25rem;
+}
+.tab {
+  min-height: 42px; border: 0; border-radius: 11px; background: transparent;
+  color: var(--muted); font: 600 .92rem var(--font); cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.tab.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 6px rgba(0, 0, 0, .25); }
+
+/* ---------- Topo / navegação ---------- */
+.topbar {
+  position: sticky; top: 0; z-index: 30; height: var(--topbar-h);
+  display: flex; align-items: center; gap: 1.25rem; padding: 0 clamp(1rem, 3vw, 2rem);
+  background: var(--topbar-bg); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--border);
+}
+.brand {
+  display: inline-flex; align-items: center; gap: .6rem; text-decoration: none;
+  color: var(--text); font: 700 1.05rem var(--font-head); white-space: nowrap;
+}
+.nav { display: flex; gap: .15rem; margin-left: .5rem; flex: 1; }
+.nav a {
+  position: relative; padding: .5rem .8rem; border-radius: 10px;
+  color: var(--muted); text-decoration: none; font-weight: 500; font-size: .93rem;
+  transition: color .15s, background .15s;
+}
+.nav a:hover { color: var(--text); background: var(--surface-2); }
+.nav a.active { color: var(--accent); }
+.nav a.active::after {
+  content: ''; position: absolute; left: .8rem; right: .8rem; bottom: -13px; height: 2px;
+  background: var(--accent); border-radius: 2px; box-shadow: 0 0 10px var(--accent);
+}
+.nav a.nav-mod {
+  display: inline-flex; align-items: center; gap: .4rem;
+  color: var(--accent-2);
+  border: 1px solid color-mix(in srgb, var(--accent-2) 45%, var(--border));
+  background: color-mix(in srgb, var(--accent-2) 10%, transparent);
+}
+.nav a.nav-mod:hover {
+  background: color-mix(in srgb, var(--accent-2) 18%, transparent);
+  color: var(--accent-2);
+}
+.nav a.nav-mod.active::after {
+  background: var(--accent-2);
+  box-shadow: 0 0 10px var(--accent-2);
+}
+.badge-count {
+  padding: .05rem .45rem; border-radius: 999px; font-size: .72rem; font-weight: 700;
+  background: var(--accent-2); color: var(--accent-ink);
+}
+.nav a.nav-cta {
+  margin-left: .35rem; font-weight: 600; color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+.nav a.nav-cta:hover { background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); }
+.nav a.nav-cta.active { background: color-mix(in srgb, var(--accent) 18%, transparent); }
+.nav a.nav-cta.active::after { display: none; }
+
+.top-actions { display: flex; align-items: center; gap: .5rem; margin-left: auto; }
+.user-chip {
+  display: inline-flex; align-items: center; gap: .5rem; max-width: 200px;
+  padding: .35rem .8rem; border-radius: 999px; font-size: .85rem; font-weight: 500;
+  background: var(--surface); border: 1px solid var(--border);
+}
+.user-chip > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.badge-admin {
+  padding: .1rem .5rem; border-radius: 999px; font-size: .7rem; font-weight: 700;
+  color: var(--accent-ink); background: var(--accent-2); text-transform: uppercase; letter-spacing: .04em;
+}
+.menu-btn { display: none; }
+
+/* ---------- Conteúdo ---------- */
+.container { width: 100%; max-width: 1180px; margin: 0 auto; padding: 2rem clamp(1rem, 3vw, 2rem) 3rem; min-height: calc(100vh - var(--topbar-h) - 70px); }
+.page.narrow { max-width: 760px; margin: 0 auto; }
+.page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+.eyebrow { color: var(--accent); font-size: .78rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; margin-bottom: .35rem; }
+.page-head h2 { font-size: clamp(1.6rem, 4vw, 2.3rem); }
+.lead { color: var(--muted); margin-top: .5rem; max-width: 60ch; }
+
+.panel {
+  padding: 1.5rem; background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: var(--shadow);
+}
+.prose h3 { font-size: 1.1rem; margin: 1.4rem 0 .6rem; }
+.prose h3:first-child { margin-top: 0; }
+.prose ul { margin: 0; padding-left: 1.2rem; color: var(--muted); display: grid; gap: .4rem; }
+.prose strong { color: var(--text); }
+
+/* ---------- Mural de Avisos ---------- */
+.board {
+  margin-bottom: 1.75rem;
+  padding: 1.25rem 1.35rem;
+  border-radius: 20px;
+  border: 1px solid color-mix(in srgb, var(--accent-2) 38%, var(--border));
+  background:
+    radial-gradient(520px 200px at 100% 0%, color-mix(in srgb, var(--accent-2) 12%, transparent), transparent 65%),
+    radial-gradient(420px 180px at 0% 100%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 65%),
+    var(--surface);
+  box-shadow: var(--shadow);
+}
+.board-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+}
+.board-title-wrap {
+  display: flex; align-items: center; gap: .8rem;
+}
+.board-icon {
+  display: inline-grid; place-items: center; width: 40px; height: 40px; flex-shrink: 0;
+  border-radius: 12px;
+  color: var(--accent-2);
+  background: color-mix(in srgb, var(--accent-2) 14%, var(--surface-2));
+  border: 1px solid color-mix(in srgb, var(--accent-2) 35%, var(--border));
+}
+.board-icon svg { width: 20px; height: 20px; }
+.board-head h3 { font-size: 1.15rem; }
+.board-sub { color: var(--muted); font-size: .84rem; margin-top: .15rem; }
+
+.notice-form {
+  margin-top: 1.1rem;
+  padding: 1.15rem;
+  border-radius: 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+.notice-form h4 { font-size: 1rem; margin-bottom: .9rem; color: var(--accent); }
+.notice-form textarea { min-height: 88px; }
+
+.notices-list {
+  display: grid; gap: .85rem; margin-top: 1.1rem;
+}
+.notices-more-wrap {
+  margin-top: .85rem;
+  display: flex;
+  justify-content: center;
+}
+.notice-item {
+  position: relative;
+  padding: 1rem 1.15rem;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface-2) 82%, var(--surface));
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent-2);
+  display: grid; gap: .55rem;
+}
+.notice-item.pinned {
+  border-left-color: var(--accent);
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--accent) 8%, transparent), transparent 45%),
+    color-mix(in srgb, var(--surface-2) 88%, var(--surface));
+}
+.notice-top {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: .75rem; flex-wrap: wrap;
+}
+.notice-title-row {
+  display: flex; align-items: center; gap: .5rem; flex-wrap: wrap;
+}
+.notice-title-row h4 { font-size: 1.02rem; }
+.pin-tag {
+  display: inline-flex; align-items: center; gap: .25rem;
+  padding: .15rem .55rem; border-radius: 999px;
+  font-size: .72rem; font-weight: 700; letter-spacing: .03em; text-transform: uppercase;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+}
+.notice-body {
+  color: var(--text);
+  font-size: .94rem;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+.notice-foot {
+  display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex-wrap: wrap;
+  padding-top: .45rem;
+  border-top: 1px dashed color-mix(in srgb, var(--border) 75%, transparent);
+  font-size: .8rem;
+  color: var(--muted);
+}
+.notice-meta {
+  display: flex; align-items: center; gap: .45rem .85rem; flex-wrap: wrap;
+}
+.notice-updated {
+  display: inline-flex; align-items: center; gap: .35rem;
+  color: var(--accent);
+  font-weight: 500;
+}
+.notice-updated svg { width: 14px; height: 14px; }
+.notice-actions {
+  display: flex; align-items: center; gap: .4rem; flex-wrap: wrap;
+}
+.notice-empty {
+  padding: 1rem; border-radius: 12px; text-align: center;
+  border: 1px dashed var(--border); color: var(--muted); font-size: .88rem;
+}
+
+/* ---------- Busca / filtros ---------- */
+.toolbar { display: flex; gap: .75rem; flex-wrap: wrap; margin-bottom: 1rem; }
+.search { position: relative; flex: 1 1 280px; }
+.search svg { position: absolute; left: .9rem; top: 50%; width: 18px; height: 18px; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+.search input { padding-left: 2.6rem; }
+.toolbar select { flex: 0 1 190px; }
+
+.count { color: var(--muted); font-size: .88rem; margin: .5rem 0 1rem; }
+
+/* ---------- Cards ---------- */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 1.1rem; }
+
+.card {
+  --cat: var(--accent);
+  display: flex; flex-direction: column; overflow: hidden;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  transition: transform .2s, border-color .2s, box-shadow .2s;
+}
+.card[data-cat="jogos"] { --cat: var(--c-jogos); }
+.card[data-cat="documentos"] { --cat: var(--c-documentos); }
+.card[data-cat="links"] { --cat: var(--c-links); }
+.card[data-cat="videos"] { --cat: var(--c-videos); }
+.card[data-cat="outros"] { --cat: var(--c-outros); }
+.card:hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--cat) 55%, var(--border));
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .25), 0 0 24px color-mix(in srgb, var(--cat) 12%, transparent);
+}
+.card-cover {
+  position: relative; aspect-ratio: 16 / 9; display: grid; place-items: center; overflow: hidden;
+  background:
+    radial-gradient(circle at 28% 22%, color-mix(in srgb, var(--cat) 30%, transparent), transparent 62%),
+    var(--surface-2);
+  color: var(--cat);
+}
+.card-cover img { width: 100%; height: 100%; object-fit: cover; }
+.card-cover > svg { width: 44px; height: 44px; opacity: .85; }
+.badge {
+  position: absolute; left: .75rem; top: .75rem; display: inline-flex; align-items: center; gap: .35rem;
+  padding: .25rem .65rem; border-radius: 999px; font-size: .74rem; font-weight: 700;
+  color: var(--cat); background: color-mix(in srgb, var(--bg) 82%, transparent);
+  border: 1px solid color-mix(in srgb, var(--cat) 45%, transparent);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+}
+.badge svg { width: 14px; height: 14px; }
+.card-body { padding: 1rem 1.1rem .5rem; display: grid; gap: .45rem; flex: 1; align-content: start; }
+.card-body h3 { font-size: 1.05rem; overflow-wrap: anywhere; }
+.desc {
+  color: var(--muted); font-size: .9rem; overflow-wrap: anywhere;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+.meta { display: flex; flex-wrap: wrap; gap: .25rem .75rem; color: var(--muted); font-size: .78rem; margin-top: .25rem; }
+.card-actions {
+  display: flex; align-items: center; flex-wrap: wrap; gap: .5rem;
+  padding: .75rem 1.1rem 1.1rem;
+}
+.card-actions .btn-main { flex: 1 1 110px; }
+.card-actions .btn-danger { flex: 0 0 auto; }
+
+/* Esqueleto de carregamento */
+.skeleton { height: 330px; border-radius: var(--radius); border: 1px solid var(--border);
+  background: linear-gradient(100deg, var(--surface) 30%, var(--surface-2) 50%, var(--surface) 70%);
+  background-size: 200% 100%; animation: shimmer 1.4s infinite; }
+@keyframes shimmer { to { background-position: -200% 0; } }
+
+.empty { grid-column: 1 / -1; text-align: center; padding: 3rem 1rem; color: var(--muted); border: 1px dashed var(--border); border-radius: var(--radius); }
+.empty h3 { color: var(--text); margin-bottom: .5rem; }
+
+/* ---------- Rodapé / aviso ---------- */
+.footer { text-align: center; padding: 1.5rem 1rem 2rem; color: var(--muted); font-size: .85rem; border-top: 1px solid var(--border); }
+
+.toast {
+  position: fixed; left: 50%; bottom: calc(1.25rem + env(safe-area-inset-bottom)); z-index: 60;
+  transform: translate(-50%, 20px); opacity: 0; pointer-events: none;
+  max-width: min(92vw, 460px); padding: .8rem 1.1rem; border-radius: 12px;
+  background: var(--surface-2); color: var(--text); border: 1px solid var(--border);
+  box-shadow: var(--shadow); font-size: .92rem; transition: opacity .2s, transform .2s;
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+.toast.success { border-color: var(--accent); }
+.toast.error { border-color: var(--danger); }
+
+/* ---------- Responsivo ---------- */
+@media (max-width: 1180px) {
+  .menu-btn { display: inline-grid; }
+  .nav {
+    position: fixed; top: var(--topbar-h); left: 0; right: 0; margin: 0;
+    flex-direction: column; gap: .15rem; padding: .75rem 1rem 1rem;
+    max-height: calc(100vh - var(--topbar-h)); overflow-y: auto;
+    background: var(--surface); border-bottom: 1px solid var(--border); box-shadow: var(--shadow);
+    display: none;
   }
-
-  const getExt = (name) => (name.includes('.') ? name.split('.').pop().toLowerCase() : '');
-
-  function safeFileName(name) {
-    const dot = name.lastIndexOf('.');
-    const base = dot > 0 ? name.slice(0, dot) : name;
-    const ext = dot > 0 ? name.slice(dot + 1).toLowerCase() : '';
-    const clean = base.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-zA-Z0-9_-]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 60) || 'arquivo';
-    return ext ? `${clean}.${ext}` : clean;
-  }
-
-  function fmtSize(bytes) {
-    if (!bytes && bytes !== 0) return '';
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < MB) return `${(bytes / 1024).toFixed(0)} KB`;
-    return `${(bytes / MB).toFixed(1).replace('.', ',')} MB`;
-  }
-
-  const fmtDate = (iso) => new Date(iso).toLocaleDateString('pt-BR');
-
-  function fmtDateTime(iso) {
-    const d = new Date(iso);
-    const date = d.toLocaleDateString('pt-BR');
-    const time = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-    return `${date} às ${time}`;
-  }
-
-  let toastTimer;
-  function toast(msg, type = 'info') {
-    const t = $('#toast');
-    t.textContent = msg;
-    t.className = `toast show ${type}`;
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => t.classList.remove('show'), 4200);
-  }
-
-  // ---------- Ícones e categorias ----------
-  const ICON_PATHS = {
-    jogos: '<rect x="2.5" y="7" width="19" height="11" rx="4"/><path d="M7 10.5v4M5 12.5h4"/><circle cx="15.5" cy="11.5" r=".7"/><circle cx="18" cy="13.5" r=".7"/>',
-    documentos: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/>',
-    links: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
-    videos: '<rect x="3" y="5" width="18" height="14" rx="3"/><path d="m10 9 5 3-5 3z"/>',
-    outros: '<path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/>',
-    download: '<path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M5 20h14"/>',
-    external: '<path d="M14 4h6v6M20 4l-9 9"/><path d="M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4"/>',
-    trash: '<path d="M4 7h16M10 11v6M14 11v6"/><path d="M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/>',
-    check: '<path d="M20 6 9 17l-5-5"/>',
-    clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
-    edit: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
-  };
-  const icon = (name) =>
-    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON_PATHS[name] || ''}</svg>`;
-
-  const CATS = {
-    jogos: { label: 'Jogos', action: 'Jogar' },
-    documentos: { label: 'Documentos', action: 'Abrir' },
-    links: { label: 'Links', action: 'Acessar' },
-    videos: { label: 'Vídeos', action: 'Assistir' },
-    outros: { label: 'Outros', action: 'Acessar' },
-  };
-
-  const PAGES = {
-    inicio: { eyebrow: 'Início', title: 'Tudo em um só lugar', sub: 'Avisos da turma e materiais compartilhados pelos alunos.' },
-    jogos: { eyebrow: 'Categoria', title: 'Jogos', sub: 'Jogos criados pelos alunos. Jogue online ou baixe.' },
-    documentos: { eyebrow: 'Categoria', title: 'Documentos', sub: 'PDFs, slides, planilhas e textos para estudo.' },
-    links: { eyebrow: 'Categoria', title: 'Links', sub: 'Sites, pastas e referências úteis.' },
-    videos: { eyebrow: 'Categoria', title: 'Vídeos', sub: 'Vídeos enviados e links de plataformas de vídeo.' },
-    outros: { eyebrow: 'Categoria', title: 'Outros', sub: 'Materiais que não se encaixam nas demais categorias.' },
-  };
-  const ROUTES = ['inicio', 'jogos', 'documentos', 'links', 'videos', 'outros', 'moderacao', 'enviar', 'sobre'];
-
-  // ---------- Estado ----------
-  const state = {
-    user: null,
-    profile: null,
-    posts: [],
-    pendingPosts: [],
-    notices: [],
-    covers: {},
-    loaded: false,
-    pendingLoaded: false,
-    noticesLoaded: false,
-    filters: { q: '', sort: 'recent', cat: 'all' },
-  };
-
-  const isAdmin = () => Boolean(state.profile && state.profile.role === 'admin');
-  const canDelete = () => isAdmin();
-
-  // ---------- Telas ----------
-  const screens = { splash: $('#splash'), auth: $('#auth-view'), app: $('#app') };
-  function showScreen(name) {
-    Object.entries(screens).forEach(([key, el]) => { el.hidden = key !== name; });
-  }
-
-  // Nome do site e ano
-  document.title = SITE;
-  $$('[data-site-name]').forEach((n) => { n.textContent = SITE; });
-  $('#year').textContent = new Date().getFullYear();
-
-  // ---------- Verificação da configuração ----------
-  const configured = CFG.SUPABASE_URL && CFG.SUPABASE_KEY
-    && !String(CFG.SUPABASE_URL).startsWith('COLE_')
-    && !String(CFG.SUPABASE_KEY).startsWith('COLE_');
-
-  if (!configured || !window.supabase) {
-    showScreen('none');
-    $('#setup-warning').hidden = false;
-    if (!window.supabase) {
-      $('#setup-warning .lead').textContent = 'Não foi possível carregar a biblioteca do Supabase. Verifique sua conexão com a internet e recarregue a página.';
-    }
-    return;
-  }
-
-  const sb = window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_KEY);
-
-  // ---------- Tema ----------
-  $('#theme-btn').addEventListener('click', () => {
-    const html = document.documentElement;
-    const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-    html.setAttribute('data-theme', next);
-    try { localStorage.setItem('ad-theme', next); } catch (_) { /* ignora */ }
-    const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute('content', next === 'dark' ? '#07080c' : '#f3f5f9');
-  });
-
-  // ---------- Menu mobile ----------
-  const nav = $('#nav');
-  const menuBtn = $('#menu-btn');
-  function closeMenu() {
-    nav.classList.remove('open');
-    menuBtn.setAttribute('aria-expanded', 'false');
-  }
-  menuBtn.addEventListener('click', () => {
-    const open = nav.classList.toggle('open');
-    menuBtn.setAttribute('aria-expanded', String(open));
-  });
-
-  // ---------- Login / cadastro ----------
-  $$('.tab').forEach((tab) => tab.addEventListener('click', () => {
-    const which = tab.dataset.tab;
-    $$('.tab').forEach((t) => {
-      const on = t === tab;
-      t.classList.toggle('active', on);
-      t.setAttribute('aria-selected', String(on));
-    });
-    $('#form-login').hidden = which !== 'login';
-    $('#form-register').hidden = which !== 'register';
-  }));
-
-  // "Mostrar senha"
-  $$('.toggle-pass').forEach((cb) => cb.addEventListener('change', () => {
-    const input = $('input[name="password"]', cb.closest('form'));
-    if (input) input.type = cb.checked ? 'text' : 'password';
-  }));
-
-  function setError(form, msg) {
-    const p = $('.form-error', form);
-    p.textContent = msg || '';
-    p.hidden = !msg;
-  }
-
-  function setBusy(btn, on, label) {
-    if (on) { btn.dataset.label = btn.textContent; btn.textContent = label; }
-    else if (btn.dataset.label) { btn.textContent = btn.dataset.label; }
-    btn.disabled = on;
-  }
-
-  function authMessage(error) {
-    const m = (error.message || '').toLowerCase();
-    if (m.includes('invalid login')) return 'E-mail ou senha incorretos.';
-    if (m.includes('already registered') || m.includes('already been registered')) return 'Este e-mail já possui conta. Use a aba Entrar.';
-    if (m.includes('rate limit')) return 'Muitas tentativas. Aguarde um pouco e tente de novo.';
-    if (m.includes('valid email') || m.includes('invalid email')) return 'Digite um e-mail válido.';
-    if (m.includes('password')) return 'A senha precisa ter pelo menos 8 caracteres.';
-    return 'Não foi possível concluir. Tente novamente.';
-  }
-
-  $('#form-login').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const f = e.currentTarget;
-    setError(f, '');
-    const email = f.elements.email.value.trim();
-    const password = f.elements.password.value;
-    if (!email || !password) return setError(f, 'Preencha o e-mail e a senha.');
-    const btn = $('button[type="submit"]', f);
-    setBusy(btn, true, 'Entrando…');
-    const { error } = await sb.auth.signInWithPassword({ email, password });
-    setBusy(btn, false);
-    if (error) setError(f, authMessage(error));
-  });
-
-  $('#form-register').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const f = e.currentTarget;
-    setError(f, '');
-    const name = f.elements.name.value.trim();
-    const email = f.elements.email.value.trim();
-    const password = f.elements.password.value;
-    if (name.length < 2) return setError(f, 'Digite seu nome.');
-    if (!email) return setError(f, 'Digite seu e-mail.');
-    if (password.length < 8) return setError(f, 'A senha precisa ter pelo menos 8 caracteres.');
-    const btn = $('button[type="submit"]', f);
-    setBusy(btn, true, 'Criando conta…');
-    const { data, error } = await sb.auth.signUp({ email, password, options: { data: { name } } });
-    setBusy(btn, false);
-    if (error) return setError(f, authMessage(error));
-    if (!data.session) {
-      toast('Conta criada! Confirme seu e-mail para entrar.', 'success');
-    }
-  });
-
-  $('#logout-btn').addEventListener('click', async () => {
-    await sb.auth.signOut();
-  });
-
-  // ---------- Botão de moderação e contador ----------
-  function updateModBadge() {
-    const navMod = $('#nav-mod');
-    const badge = $('#mod-badge');
-    if (!navMod || !badge) return;
-    if (!isAdmin()) {
-      navMod.hidden = true;
-      badge.hidden = true;
-      return;
-    }
-    navMod.hidden = false;
-    const count = state.pendingPosts.length;
-    badge.textContent = String(count);
-    badge.hidden = count === 0;
-  }
-
-  // ---------- Sessão ----------
-  let currentUserId = null;
-
-  async function loadProfile(user) {
-    for (let i = 0; i < 3; i += 1) {
-      const { data } = await sb.from('profiles').select('name, role').eq('id', user.id).maybeSingle();
-      if (data) return data;
-      await new Promise((r) => setTimeout(r, 400));
-    }
-    return { name: (user.user_metadata && user.user_metadata.name) || user.email.split('@')[0], role: 'user' };
-  }
-
-  async function handleSession(session) {
-    if (!session) {
-      currentUserId = null;
-      state.user = null;
-      state.profile = null;
-      state.posts = [];
-      state.pendingPosts = [];
-      state.notices = [];
-      state.loaded = false;
-      state.pendingLoaded = false;
-      state.noticesLoaded = false;
-      updateModBadge();
-      closeMenu();
-      showScreen('auth');
-      return;
-    }
-    if (currentUserId === session.user.id && state.user) {
-      state.user = session.user; // apenas renovação do token
-      return;
-    }
-    currentUserId = session.user.id;
-    state.user = session.user;
-    state.profile = await loadProfile(session.user);
-    $('#user-name').textContent = state.profile.name;
-    $('#admin-badge').hidden = !isAdmin();
-    updateModBadge();
-    if (isAdmin() && !state.pendingLoaded) {
-      await loadPendingPosts();
-      updateModBadge();
-    }
-    showScreen('app');
-    if (!location.hash || location.hash === '#') history.replaceState(null, '', '#/inicio');
-    route();
-  }
-
-  // O setTimeout evita travar o cliente do Supabase dentro do callback
-  sb.auth.onAuthStateChange((_event, session) => {
-    setTimeout(() => handleSession(session), 0);
-  });
-
-  // ---------- Dados: Mural de Avisos ----------
-  async function loadNotices() {
-    const { data, error } = await sb.from('notices').select('*')
-      .order('pinned', { ascending: false })
-      .order('updated_at', { ascending: false })
-      .limit(50);
-    if (error) {
-      console.error(error);
-      state.notices = [];
-    } else {
-      state.notices = data || [];
-    }
-    state.noticesLoaded = true;
-  }
-
-  function sortNotices() {
-    state.notices.sort((a, b) => {
-      if (Boolean(a.pinned) !== Boolean(b.pinned)) return a.pinned ? -1 : 1;
-      return new Date(b.updated_at) - new Date(a.updated_at);
-    });
-  }
-
-  function openNoticeForm(notice = null) {
-    const form = $('#notice-form');
-    if (!form) return;
-    setError(form, '');
-    form.hidden = false;
-    $('#notice-form-title').textContent = notice ? 'Editar aviso' : 'Novo aviso no mural';
-    form.elements.id.value = notice ? notice.id : '';
-    form.elements.title.value = notice ? notice.title : '';
-    form.elements.content.value = notice ? notice.content : '';
-    form.elements.link.value = notice && notice.link_url ? notice.link_url : '';
-    form.elements.pinned.checked = Boolean(notice && notice.pinned);
-    form.elements.title.focus();
-  }
-
-  function closeNoticeForm() {
-    const form = $('#notice-form');
-    if (!form) return;
-    form.reset();
-    form.elements.id.value = '';
-    setError(form, '');
-    form.hidden = true;
-  }
-
-  function renderBoard() {
-    const section = $('#board-section');
-    const listEl = $('#notices-list');
-    const newBtn = $('#new-notice-btn');
-    if (!section || !listEl) return;
-
-    const admin = isAdmin();
-    if (newBtn) newBtn.hidden = !admin;
-
-    if (!admin && state.notices.length === 0) {
-      section.hidden = true;
-      return;
-    }
-
-    section.hidden = false;
-    sortNotices();
-
-    if (state.notices.length === 0) {
-      listEl.innerHTML = '<div class="notice-empty">Nenhum aviso publicado no mural ainda. Clique em <strong>+ Novo aviso</strong> para publicar o primeiro.</div>';
-      return;
-    }
-
-    listEl.innerHTML = state.notices.map((n) => {
-      const link = n.link_url ? safeUrl(n.link_url) : null;
-      return `
-        <article class="notice-item${n.pinned ? ' pinned' : ''}">
-          <div class="notice-top">
-            <div class="notice-title-row">
-              ${n.pinned ? '<span class="pin-tag">Fixado</span>' : ''}
-              <h4>${esc(n.title)}</h4>
-            </div>
-            ${link ? `<a class="btn btn-sm" href="${esc(link)}" target="_blank" rel="noopener noreferrer">${icon('external')}Abrir link</a>` : ''}
-          </div>
-          <p class="notice-body">${esc(n.content)}</p>
-          <div class="notice-foot">
-            <div class="notice-meta">
-              <span>por ${esc(n.author_name || 'Admin')}</span>
-              <span class="notice-updated">${icon('clock')}Atualizado em ${esc(fmtDateTime(n.updated_at))}</span>
-            </div>
-            ${admin ? `
-              <div class="notice-actions">
-                <button type="button" class="btn btn-sm" data-notice-action="edit" data-id="${esc(n.id)}">${icon('edit')}Editar</button>
-                <button type="button" class="btn btn-sm btn-danger" data-notice-action="delete" data-id="${esc(n.id)}" aria-label="Excluir aviso ${esc(n.title)}">${icon('trash')}</button>
-              </div>` : ''}
-          </div>
-        </article>`;
-    }).join('');
-  }
-
-  async function saveNotice(e) {
-    e.preventDefault();
-    if (!isAdmin()) return toast('Apenas os administradores podem publicar avisos.', 'error');
-    const form = e.currentTarget;
-    setError(form, '');
-
-    const id = form.elements.id.value.trim();
-    const title = form.elements.title.value.trim();
-    const content = form.elements.content.value.trim();
-    const rawLink = form.elements.link.value.trim();
-    const pinned = form.elements.pinned.checked;
-
-    if (title.length < 2) return setError(form, 'Digite um título para o aviso.');
-    if (content.length < 2) return setError(form, 'Escreva a mensagem do aviso.');
-    const link = rawLink ? safeUrl(rawLink) : null;
-    if (rawLink && !link) return setError(form, 'Digite um link válido começando com http:// ou https://.');
-
-    const btn = $('button[type="submit"]', form);
-    setBusy(btn, true, 'Salvando…');
-
-    if (id) {
-      const { data, error } = await sb.from('notices')
-        .update({ title, content, link_url: link, pinned })
-        .eq('id', id)
-        .select('*')
-        .maybeSingle();
-      setBusy(btn, false);
-      if (error || !data) return setError(form, 'Não foi possível atualizar o aviso.');
-      state.notices = state.notices.map((x) => (x.id === id ? data : x));
-      closeNoticeForm();
-      renderBoard();
-      toast('Aviso atualizado!', 'success');
-    } else {
-      const { data, error } = await sb.from('notices')
-        .insert({ user_id: state.user.id, title, content, link_url: link, pinned })
-        .select('*')
-        .maybeSingle();
-      setBusy(btn, false);
-      if (error || !data) return setError(form, 'Não foi possível publicar o aviso.');
-      state.notices.unshift(data);
-      closeNoticeForm();
-      renderBoard();
-      toast('Aviso publicado no mural!', 'success');
-    }
-  }
-
-  async function deleteNotice(id, btn) {
-    if (!isAdmin()) return toast('Apenas os administradores podem excluir avisos.', 'error');
-    const n = state.notices.find((x) => x.id === id);
-    if (!n) return;
-    if (!window.confirm(`Excluir o aviso "${n.title}"?`)) return;
-    btn.disabled = true;
-    const { data, error } = await sb.from('notices').delete().eq('id', id).select('id');
-    if (error || !data || data.length === 0) {
-      btn.disabled = false;
-      return toast('Não foi possível excluir este aviso.', 'error');
-    }
-    state.notices = state.notices.filter((x) => x.id !== id);
-    renderBoard();
-    toast('Aviso excluído.', 'success');
-  }
-
-  // ---------- Dados: Materiais ----------
-  async function attachCovers(items) {
-    const paths = items.map((p) => p.cover_path).filter(Boolean);
-    if (!paths.length) return;
-    const unique = [...new Set(paths)];
-    const { data: signed } = await sb.storage.from(BUCKET).createSignedUrls(unique, 3600);
-    (signed || []).forEach((s) => {
-      if (s.signedUrl && !s.error) state.covers[s.path] = s.signedUrl;
-    });
-  }
-
-  async function loadPosts() {
-    const { data, error } = await sb.from('posts').select('*')
-      .eq('status', 'approved')
-      .order('created_at', { ascending: false }).limit(500);
-    if (error) {
-      console.error(error);
-      toast('Não foi possível carregar os materiais.', 'error');
-      state.posts = [];
-    } else {
-      state.posts = data || [];
-    }
-
-    await attachCovers(state.posts);
-    state.loaded = true;
-  }
-
-  async function loadPendingPosts() {
-    if (!isAdmin()) {
-      state.pendingPosts = [];
-      state.pendingLoaded = true;
-      updateModBadge();
-      return;
-    }
-    const { data, error } = await sb.from('posts').select('*')
-      .eq('status', 'pending')
-      .order('created_at', { ascending: false }).limit(500);
-    if (error) {
-      console.error(error);
-      toast('Não foi possível carregar os envios pendentes.', 'error');
-      state.pendingPosts = [];
-    } else {
-      state.pendingPosts = data || [];
-    }
-
-    await attachCovers(state.pendingPosts);
-    state.pendingLoaded = true;
-    updateModBadge();
-  }
-
-  function findPostById(id) {
-    return state.posts.find((x) => x.id === id) || state.pendingPosts.find((x) => x.id === id);
-  }
-
-  async function downloadPost(id, btn) {
-    const p = findPostById(id);
-    if (!p || !p.file_path) return;
-    btn.disabled = true;
-    const { data, error } = await sb.storage.from(BUCKET).createSignedUrl(p.file_path, 120, { download: p.file_name || true });
-    btn.disabled = false;
-    if (error || !data) return toast('Não foi possível baixar o arquivo.', 'error');
-    window.location.href = data.signedUrl;
-  }
-
-  async function approvePost(id, btn) {
-    if (!isAdmin()) return toast('Apenas os administradores podem aprovar envios.', 'error');
-    const p = state.pendingPosts.find((x) => x.id === id);
-    if (!p) return;
-    btn.disabled = true;
-    const { data, error } = await sb.from('posts')
-      .update({ status: 'approved' })
-      .eq('id', id)
-      .select('*')
-      .maybeSingle();
-    btn.disabled = false;
-    if (error || !data) {
-      return toast('Não foi possível aprovar este material.', 'error');
-    }
-    state.pendingPosts = state.pendingPosts.filter((x) => x.id !== id);
-    if (!state.posts.some((x) => x.id === id)) {
-      state.posts.unshift(data);
-    }
-    updateModBadge();
-    renderModerationGrid();
-    toast('Material aprovado e publicado!', 'success');
-  }
-
-  async function deletePost(id, btn, fromModeration = false) {
-    if (!canDelete()) return toast('Apenas os administradores podem excluir publicações.', 'error');
-    const p = findPostById(id);
-    if (!p) return;
-    const msg = fromModeration
-      ? `Recusar e excluir "${p.title}"? O arquivo será removido permanentemente.`
-      : `Excluir "${p.title}"? Essa ação não pode ser desfeita.`;
-    if (!window.confirm(msg)) return;
-    btn.disabled = true;
-    const { data, error } = await sb.from('posts').delete().eq('id', id).select('id');
-    if (error || !data || data.length === 0) {
-      btn.disabled = false;
-      return toast('Você não tem permissão para excluir este item.', 'error');
-    }
-    const paths = [p.file_path, p.cover_path].filter(Boolean);
-    if (paths.length) await sb.storage.from(BUCKET).remove(paths);
-    state.posts = state.posts.filter((x) => x.id !== id);
-    state.pendingPosts = state.pendingPosts.filter((x) => x.id !== id);
-    updateModBadge();
-    if (fromModeration) renderModerationGrid();
-    else renderGrid();
-    toast(fromModeration ? 'Envio recusado e removido.' : 'Publicação excluída.', 'success');
-  }
-
-  // ---------- Roteador ----------
-  const view = $('#view');
-
-  function currentRoute() {
-    const r = location.hash.replace(/^#\/?/, '').split('?')[0];
-    if (r === 'moderacao' && !isAdmin()) return 'inicio';
-    return ROUTES.includes(r) ? r : 'inicio';
-  }
-
-  function route() {
-    if (!state.user) return;
-    const r = currentRoute();
-    if (location.hash.replace(/^#\/?/, '').split('?')[0] === 'moderacao' && !isAdmin()) {
-      history.replaceState(null, '', '#/inicio');
-    }
-    $$('.nav a').forEach((a) => a.classList.toggle('active', a.dataset.route === r));
-    closeMenu();
-    window.scrollTo(0, 0);
-    view.dataset.route = r;
-    const pageTitle = r === 'moderacao'
-      ? 'Moderação'
-      : r === 'enviar'
-        ? 'Enviar material'
-        : r === 'sobre'
-          ? 'Sobre'
-          : r === 'inicio'
-            ? ''
-            : PAGES[r].title;
-    document.title = pageTitle ? `${pageTitle} · ${SITE}` : SITE;
-    if (r === 'moderacao') renderModeration();
-    else if (r === 'enviar') renderUpload();
-    else if (r === 'sobre') renderAbout();
-    else renderList(r);
-  }
-  window.addEventListener('hashchange', route);
-
-  // ---------- Página: listagem ----------
-  function renderList(r) {
-    const page = PAGES[r];
-    state.filters.cat = r === 'inicio' ? 'all' : r;
-    state.filters.q = '';
-
-    view.replaceChildren($('#tpl-list').content.cloneNode(true));
-    const firstName = ((state.profile && state.profile.name) || '').trim().split(/\s+/)[0];
-    $('#list-eyebrow').textContent = r === 'inicio' && firstName ? `Olá, ${firstName}` : page.eyebrow;
-    $('#list-title').textContent = page.title;
-    $('#list-sub').textContent = page.sub;
-    $('#sort').value = state.filters.sort;
-
-    if (r === 'inicio') {
-      $('#new-notice-btn').addEventListener('click', () => openNoticeForm());
-      $('#cancel-notice-btn').addEventListener('click', closeNoticeForm);
-      $('#notice-form').addEventListener('submit', saveNotice);
-      $('#notices-list').addEventListener('click', (e) => {
-        const btn = e.target.closest('[data-notice-action]');
-        if (!btn) return;
-        const id = btn.dataset.id;
-        if (btn.dataset.noticeAction === 'edit') {
-          const item = state.notices.find((x) => x.id === id);
-          if (item) openNoticeForm(item);
-        } else if (btn.dataset.noticeAction === 'delete') {
-          deleteNotice(id, btn);
-        }
-      });
-
-      if (state.noticesLoaded) {
-        renderBoard();
-      } else {
-        loadNotices().then(() => { if (view.dataset.route === 'inicio') renderBoard(); });
-      }
-    }
-
-    $('#q').addEventListener('input', (e) => { state.filters.q = e.target.value; renderGrid(); });
-    $('#sort').addEventListener('change', (e) => { state.filters.sort = e.target.value; renderGrid(); });
-    $('#grid').addEventListener('click', onGridClick);
-
-    if (state.loaded) {
-      renderGrid();
-    } else {
-      $('#grid').innerHTML = '<div class="skeleton"></div>'.repeat(6);
-      loadPosts().then(() => { if (view.dataset.route === r) renderGrid(); });
-    }
-  }
-
-  function filteredPosts() {
-    const { q, sort, cat } = state.filters;
-    const term = q.trim().toLowerCase();
-    const list = state.posts.filter((p) =>
-      (cat === 'all' || p.category === cat)
-      && (!term || [p.title, p.description, p.author_name].some((v) => (v || '').toLowerCase().includes(term))));
-    if (sort === 'old') list.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-    else if (sort === 'az') list.sort((a, b) => a.title.localeCompare(b.title, 'pt-BR'));
-    else list.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-    return list;
-  }
-
-  function cardHtml(p) {
-    const cat = CATS[p.category] ? p.category : 'outros';
-    const meta = CATS[cat];
-    const cover = state.covers[p.cover_path];
-    const link = p.link_url ? safeUrl(p.link_url) : null;
-    const size = p.file_size ? fmtSize(p.file_size) : '';
-    return `
-      <article class="card" data-cat="${cat}">
-        <div class="card-cover">
-          ${cover ? `<img src="${esc(cover)}" alt="" loading="lazy">` : icon(cat)}
-          <span class="badge">${icon(cat)}${esc(meta.label)}</span>
-        </div>
-        <div class="card-body">
-          <h3>${esc(p.title)}</h3>
-          ${p.description ? `<p class="desc">${esc(p.description)}</p>` : ''}
-          <div class="meta">
-            <span>por ${esc(p.author_name || 'Aluno')}</span>
-            <span>${esc(fmtDate(p.created_at))}</span>
-            ${size ? `<span>${esc(size)}</span>` : ''}
-          </div>
-        </div>
-        <div class="card-actions">
-          ${link ? `<a class="btn btn-primary btn-sm" href="${esc(link)}" target="_blank" rel="noopener noreferrer">${icon('external')}${esc(meta.action)}</a>` : ''}
-          ${p.file_path ? `<button type="button" class="btn btn-sm${link ? '' : ' btn-primary'}" data-action="download" data-id="${esc(p.id)}">${icon('download')}Baixar</button>` : ''}
-          ${canDelete() ? `<button type="button" class="btn btn-sm btn-danger" data-action="delete" data-id="${esc(p.id)}" aria-label="Excluir ${esc(p.title)}">${icon('trash')}</button>` : ''}
-        </div>
-      </article>`;
-  }
-
-  function renderGrid() {
-    const grid = $('#grid');
-    if (!grid) return;
-    const list = filteredPosts();
-    const count = $('#count');
-    count.hidden = list.length === 0;
-    count.textContent = list.length === 1 ? '1 material' : `${list.length} materiais`;
-
-    if (list.length === 0) {
-      let title = 'Nada encontrado';
-      let text = 'Tente buscar com outras palavras.';
-      if (state.posts.length === 0) {
-        title = 'Ainda não há materiais aqui';
-        text = 'Seja o primeiro a compartilhar! Use a aba Enviar, no menu.';
-      } else if (!state.filters.q.trim()) {
-        title = 'Nada por aqui ainda';
-        text = 'Ainda não há materiais nesta categoria. Use a aba Enviar, no menu, para publicar o primeiro.';
-      }
-      grid.innerHTML = `
-        <div class="empty">
-          <h3>${esc(title)}</h3>
-          <p>${esc(text)}</p>
-        </div>`;
-      return;
-    }
-    grid.innerHTML = list.map(cardHtml).join('');
-  }
-
-  function onGridClick(e) {
-    const btn = e.target.closest('[data-action]');
-    if (!btn) return;
-    if (btn.dataset.action === 'download') downloadPost(btn.dataset.id, btn);
-    if (btn.dataset.action === 'delete') deletePost(btn.dataset.id, btn, false);
-  }
-
-  // ---------- Página: moderação (apenas admins) ----------
-  function moderationCardHtml(p) {
-    const cat = CATS[p.category] ? p.category : 'outros';
-    const meta = CATS[cat];
-    const cover = state.covers[p.cover_path];
-    const link = p.link_url ? safeUrl(p.link_url) : null;
-    const size = p.file_size ? fmtSize(p.file_size) : '';
-    return `
-      <article class="card" data-cat="${cat}">
-        <div class="card-cover">
-          ${cover ? `<img src="${esc(cover)}" alt="" loading="lazy">` : icon(cat)}
-          <span class="badge">${icon(cat)}${esc(meta.label)}</span>
-        </div>
-        <div class="card-body">
-          <h3>${esc(p.title)}</h3>
-          ${p.description ? `<p class="desc">${esc(p.description)}</p>` : ''}
-          <div class="meta">
-            <span>por ${esc(p.author_name || 'Aluno')}</span>
-            <span>${esc(fmtDate(p.created_at))}</span>
-            ${size ? `<span>${esc(size)}</span>` : ''}
-          </div>
-        </div>
-        <div class="card-actions">
-          ${link ? `<a class="btn btn-sm" href="${esc(link)}" target="_blank" rel="noopener noreferrer">${icon('external')}${esc(meta.action)}</a>` : ''}
-          ${p.file_path ? `<button type="button" class="btn btn-sm" data-action="download" data-id="${esc(p.id)}">${icon('download')}Baixar</button>` : ''}
-          <button type="button" class="btn btn-primary btn-sm" data-action="approve" data-id="${esc(p.id)}">${icon('check')}Aprovar</button>
-          <button type="button" class="btn btn-sm btn-danger" data-action="reject" data-id="${esc(p.id)}" aria-label="Recusar ${esc(p.title)}">${icon('trash')}</button>
-        </div>
-      </article>`;
-  }
-
-  function renderModerationGrid() {
-    const grid = $('#mod-grid');
-    if (!grid) return;
-    const list = state.pendingPosts;
-    const count = $('#mod-count');
-    count.hidden = list.length === 0;
-    count.textContent = list.length === 1 ? '1 envio pendente' : `${list.length} envios pendentes`;
-
-    if (list.length === 0) {
-      grid.innerHTML = `
-        <div class="empty">
-          <h3>Nenhum envio pendente</h3>
-          <p>Todos os envios já foram revisados.</p>
-        </div>`;
-      return;
-    }
-    grid.innerHTML = list.map(moderationCardHtml).join('');
-  }
-
-  function onModerationClick(e) {
-    const btn = e.target.closest('[data-action]');
-    if (!btn) return;
-    const id = btn.dataset.id;
-    if (btn.dataset.action === 'download') downloadPost(id, btn);
-    if (btn.dataset.action === 'approve') approvePost(id, btn);
-    if (btn.dataset.action === 'reject') deletePost(id, btn, true);
-  }
-
-  function renderModeration() {
-    if (!isAdmin()) {
-      location.hash = '#/inicio';
-      return;
-    }
-    view.replaceChildren($('#tpl-moderation').content.cloneNode(true));
-    $('#mod-grid').addEventListener('click', onModerationClick);
-
-    if (state.pendingLoaded) {
-      renderModerationGrid();
-    } else {
-      $('#mod-grid').innerHTML = '<div class="skeleton"></div>'.repeat(3);
-      loadPendingPosts().then(() => { if (view.dataset.route === 'moderacao') renderModerationGrid(); });
-    }
-  }
-
-  // ---------- Página: enviar ----------
-  function renderUpload() {
-    view.replaceChildren($('#tpl-upload').content.cloneNode(true));
-    const form = $('#form-upload');
-    const select = $('#up-category');
-    select.innerHTML = Object.entries(CATS).map(([k, v]) => `<option value="${k}">${esc(v.label)}</option>`).join('');
-
-    const hints = {
-      jogos: 'Para jogos online, cole aqui o link para jogar. Se preferir, envie o .zip do jogo no campo Arquivo.',
-      documentos: 'Opcional: link do documento (Drive, por exemplo).',
-      links: 'Cole o endereço do site ou da pasta que você quer compartilhar.',
-      videos: 'Cole o link do vídeo (YouTube, por exemplo) ou envie o arquivo abaixo.',
-      outros: 'Opcional: link relacionado ao material.',
-    };
-    const updateHint = () => { $('#link-hint').textContent = hints[select.value]; };
-    select.addEventListener('change', updateHint);
-    updateHint();
-
-    const desc = form.elements.description;
-    desc.addEventListener('input', () => { $('#desc-count').textContent = `${desc.value.length}/1000`; });
-
-    form.addEventListener('submit', submitUpload);
-  }
-
-  async function submitUpload(e) {
-    e.preventDefault();
-    const form = e.currentTarget;
-    const errBox = $('#upload-error');
-    const fail = (msg) => { errBox.textContent = msg; errBox.hidden = false; errBox.scrollIntoView({ block: 'center', behavior: 'smooth' }); };
-    errBox.hidden = true;
-
-    const category = form.elements.category.value;
-    const title = form.elements.title.value.trim();
-    const description = form.elements.description.value.trim();
-    const rawLink = form.elements.link.value.trim();
-    const file = form.elements.file.files[0] || null;
-    const cover = form.elements.cover.files[0] || null;
-
-    if (title.length < 3) return fail('O título precisa ter pelo menos 3 caracteres.');
-    const link = rawLink ? safeUrl(rawLink) : null;
-    if (rawLink && !link) return fail('Digite um link válido, começando com http:// ou https://.');
-    if (category === 'links' && !link) return fail('Na categoria Links, o link é obrigatório.');
-    if (!link && !file) return fail('Envie um arquivo ou informe um link.');
-
-    if (file) {
-      if (!FILE_EXT.includes(getExt(file.name))) return fail('Tipo de arquivo não permitido. Veja a lista de tipos aceitos.');
-      if (file.size > MAX_FILE) return fail('O arquivo passa de 25 MB. Para arquivos grandes, publique um link.');
-    }
-    if (cover) {
-      if (!COVER_EXT.includes(getExt(cover.name))) return fail('A capa precisa ser PNG, JPG, WEBP ou GIF.');
-      if (cover.size > MAX_COVER) return fail('A imagem de capa passa de 5 MB.');
-    }
-
-    const btn = $('button[type="submit"]', form);
-    setBusy(btn, true, 'Enviando…');
-
-    const uploaded = [];
-    const upload = async (f, prefix) => {
-      const path = `${state.user.id}/${prefix}${Date.now()}-${safeFileName(f.name)}`;
-      const { error } = await sb.storage.from(BUCKET).upload(path, f, { cacheControl: '3600', upsert: false });
-      if (error) throw error;
-      uploaded.push(path);
-      return path;
-    };
-
-    try {
-      const filePath = file ? await upload(file, '') : null;
-      const coverPath = cover ? await upload(cover, 'capa-') : null;
-      const { error } = await sb.from('posts').insert({
-        user_id: state.user.id,
-        title,
-        description,
-        category,
-        link_url: link,
-        file_path: filePath,
-        file_name: file ? file.name : null,
-        file_size: file ? file.size : null,
-        cover_path: coverPath,
-      });
-      if (error) throw error;
-    } catch (err) {
-      console.error(err);
-      if (uploaded.length) await sb.storage.from(BUCKET).remove(uploaded);
-      setBusy(btn, false);
-      return fail('Não foi possível publicar. Verifique sua conexão e tente novamente.');
-    }
-
-    if (isAdmin()) {
-      state.loaded = false;
-      toast('Material publicado!', 'success');
-      location.hash = `#/${category}`;
-    } else {
-      toast('Enviado para análise! Um administrador irá revisar antes de publicar.', 'success');
-      location.hash = '#/inicio';
-    }
-  }
-
-  // ---------- Página: sobre ----------
-  function renderAbout() {
-    view.replaceChildren($('#tpl-about').content.cloneNode(true));
-    $$('[data-site-name]', view).forEach((n) => { n.textContent = SITE; });
-  }
-})();
+  .nav.open { display: flex; }
+  .nav a { padding: .8rem 1rem; font-size: 1rem; }
+  .nav a.active { background: var(--surface-2); }
+  .nav a.active::after { display: none; }
+  .nav a.nav-cta { margin: .4rem 0 0; text-align: center; }
+}
+
+@media (max-width: 640px) {
+  .user-chip { display: none; }
+}
+
+@media (max-width: 520px) {
+  .container { padding-top: 1.25rem; }
+  .grid { grid-template-columns: 1fr; }
+  .form-actions .btn { flex: 1; }
+  .toolbar select { flex: 1 1 100%; }
+  .auth-card { padding: 1.5rem 1.1rem; }
+  .board { padding: 1rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
