@@ -100,6 +100,9 @@
         <a href="#/videos" data-route="videos">Vídeos</a>
         <a href="#/outros" data-route="outros">Outros</a>
         <a href="#/sobre" data-route="sobre">Sobre</a>
+        <a href="#/moderacao" data-route="moderacao" id="nav-mod" class="nav-mod" hidden>
+          Moderação <span id="mod-badge" class="badge-count" hidden>0</span>
+        </a>
         <a href="#/enviar" data-route="enviar" class="nav-cta">+ Enviar</a>
       </nav>
 
@@ -158,13 +161,28 @@
     </section>
   </template>
 
+  <template id="tpl-moderation">
+    <section class="page">
+      <header class="page-head">
+        <div>
+          <p class="eyebrow">Administração</p>
+          <h2>Aprovação de envios</h2>
+          <p class="lead">Revise os materiais enviados pelos alunos antes de ficarem visíveis no site.</p>
+        </div>
+      </header>
+
+      <p class="count" id="mod-count" aria-live="polite"></p>
+      <div class="grid" id="mod-grid"></div>
+    </section>
+  </template>
+
   <template id="tpl-upload">
     <section class="page narrow">
       <header class="page-head">
         <div>
           <p class="eyebrow">Compartilhar</p>
           <h2>Enviar material</h2>
-          <p class="lead">Publique um arquivo, um link, ou os dois. Todos os alunos logados poderão ver e baixar.</p>
+          <p class="lead">Publique um arquivo, um link, ou os dois. Após aprovação da moderação, ficará visível para todos os alunos logados.</p>
         </div>
       </header>
 
@@ -226,7 +244,7 @@
         <ul>
           <li>Crie sua conta com e-mail e senha. É preciso estar logado para ver e baixar qualquer material.</li>
           <li>Use <strong>Enviar</strong> para publicar um arquivo, um link ou os dois.</li>
-          <li>Em cada publicação você pode <strong>baixar</strong> o arquivo ou <strong>acessar</strong> o link (por exemplo, jogar um jogo online).</li>
+          <li>Em cada publicação aprovada você pode <strong>baixar</strong> o arquivo ou <strong>acessar</strong> o link (por exemplo, jogar um jogo online).</li>
         </ul>
 
         <h3>Categorias</h3>
@@ -242,7 +260,7 @@
         <ul>
           <li>Publique apenas conteúdo que você tem direito de compartilhar.</li>
           <li>Não envie material ofensivo, ilegal ou com dados pessoais de outras pessoas.</li>
-          <li>Você pode excluir o que publicou. Administradores podem remover qualquer publicação.</li>
+          <li>Apenas os administradores podem aprovar novos envios ou remover publicações do site.</li>
         </ul>
       </div>
     </section>
