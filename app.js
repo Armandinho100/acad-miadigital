@@ -1,7 +1,7 @@
 // =====================================================
 //  ACADEMIA DIGITAL — lógica do site
-//  Login (e-mail e senha), listagem, envio e exclusão
-//  de materiais usando o Supabase.
+//  Login (e-mail e senha), listagem, moderação,
+//  envio e exclusão de materiais usando o Supabase.
 // =====================================================
 (() => {
   'use strict';
@@ -71,6 +71,7 @@
     download: '<path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M5 20h14"/>',
     external: '<path d="M14 4h6v6M20 4l-9 9"/><path d="M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4"/>',
     trash: '<path d="M4 7h16M10 11v6M14 11v6"/><path d="M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/>',
+    check: '<path d="M20 6 9 17l-5-5"/>',
   };
   const icon = (name) =>
     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON_PATHS[name] || ''}</svg>`;
@@ -91,17 +92,22 @@
     videos: { eyebrow: 'Categoria', title: 'Vídeos', sub: 'Vídeos enviados e links de plataformas de vídeo.' },
     outros: { eyebrow: 'Categoria', title: 'Outros', sub: 'Materiais que não se encaixam nas demais categorias.' },
   };
-  const ROUTES = ['inicio', 'jogos', 'documentos', 'links', 'videos', 'outros', 'enviar', 'sobre'];
+  const ROUTES = ['inicio', 'jogos', 'documentos', 'links', 'videos', 'outros', 'moderacao', 'enviar', 'sobre'];
 
   // ---------- Estado ----------
   const state = {
     user: null,
     profile: null,
     posts: [],
+    pendingPosts: [],
     covers: {},
     loaded: false,
+    pendingLoaded: false,
     filters: { q: '', sort: 'recent', cat: 'all' },
   };
+
+  const isAdmin = () => Boolean(state.profile && state.profile.role === 'admin');
+  const canDelete = () => isAdmin();
 
   // ---------- Telas ----------
   const screens = { splash: $('#splash'), auth: $('#auth-view'), app: $('#app') };
@@ -230,6 +236,22 @@
     await sb.auth.signOut();
   });
 
+  // ---------- Botão de moderação e contador ----------
+  function updateModBadge() {
+    const navMod = $('#nav-mod');
+    const badge = $('#mod-badge');
+    if (!navMod || !badge) return;
+    if (!isAdmin()) {
+      navMod.hidden = true;
+      badge.hidden = true;
+      return;
+    }
+    navMod.hidden = false;
+    const count = state.pendingPosts.length;
+    badge.textContent = String(count);
+    badge.hidden = count === 0;
+  }
+
   // ---------- Sessão ----------
   let currentUserId = null;
 
@@ -248,7 +270,10 @@
       state.user = null;
       state.profile = null;
       state.posts = [];
+      state.pendingPosts = [];
       state.loaded = false;
+      state.pendingLoaded = false;
+      updateModBadge();
       closeMenu();
       showScreen('auth');
       return;
@@ -261,7 +286,12 @@
     state.user = session.user;
     state.profile = await loadProfile(session.user);
     $('#user-name').textContent = state.profile.name;
-    $('#admin-badge').hidden = state.profile.role !== 'admin';
+    $('#admin-badge').hidden = !isAdmin();
+    updateModBadge();
+    if (isAdmin() && !state.pendingLoaded) {
+      await loadPendingPosts();
+      updateModBadge();
+    }
     showScreen('app');
     if (!location.hash || location.hash === '#') history.replaceState(null, '', '#/inicio');
     route();
@@ -273,30 +303,61 @@
   });
 
   // ---------- Dados ----------
+  async function attachCovers(items) {
+    const paths = items.map((p) => p.cover_path).filter(Boolean);
+    if (!paths.length) return;
+    const unique = [...new Set(paths)];
+    const { data: signed } = await sb.storage.from(BUCKET).createSignedUrls(unique, 3600);
+    (signed || []).forEach((s) => {
+      if (s.signedUrl && !s.error) state.covers[s.path] = s.signedUrl;
+    });
+  }
+
   async function loadPosts() {
     const { data, error } = await sb.from('posts').select('*')
+      .eq('status', 'approved')
       .order('created_at', { ascending: false }).limit(500);
     if (error) {
       console.error(error);
       toast('Não foi possível carregar os materiais.', 'error');
       state.posts = [];
     } else {
-      state.posts = data;
+      state.posts = data || [];
     }
 
-    state.covers = {};
-    const paths = state.posts.map((p) => p.cover_path).filter(Boolean);
-    if (paths.length) {
-      const { data: signed } = await sb.storage.from(BUCKET).createSignedUrls(paths, 3600);
-      (signed || []).forEach((s) => { if (s.signedUrl && !s.error) state.covers[s.path] = s.signedUrl; });
-    }
+    await attachCovers(state.posts);
     state.loaded = true;
   }
 
-  const canDelete = (p) => state.user && (state.user.id === p.user_id || (state.profile && state.profile.role === 'admin'));
+  async function loadPendingPosts() {
+    if (!isAdmin()) {
+      state.pendingPosts = [];
+      state.pendingLoaded = true;
+      updateModBadge();
+      return;
+    }
+    const { data, error } = await sb.from('posts').select('*')
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false }).limit(500);
+    if (error) {
+      console.error(error);
+      toast('Não foi possível carregar os envios pendentes.', 'error');
+      state.pendingPosts = [];
+    } else {
+      state.pendingPosts = data || [];
+    }
+
+    await attachCovers(state.pendingPosts);
+    state.pendingLoaded = true;
+    updateModBadge();
+  }
+
+  function findPostById(id) {
+    return state.posts.find((x) => x.id === id) || state.pendingPosts.find((x) => x.id === id);
+  }
 
   async function downloadPost(id, btn) {
-    const p = state.posts.find((x) => x.id === id);
+    const p = findPostById(id);
     if (!p || !p.file_path) return;
     btn.disabled = true;
     const { data, error } = await sb.storage.from(BUCKET).createSignedUrl(p.file_path, 120, { download: p.file_name || true });
@@ -305,10 +366,37 @@
     window.location.href = data.signedUrl;
   }
 
-  async function deletePost(id, btn) {
-    const p = state.posts.find((x) => x.id === id);
+  async function approvePost(id, btn) {
+    if (!isAdmin()) return toast('Apenas os administradores podem aprovar envios.', 'error');
+    const p = state.pendingPosts.find((x) => x.id === id);
     if (!p) return;
-    if (!window.confirm(`Excluir "${p.title}"? Essa ação não pode ser desfeita.`)) return;
+    btn.disabled = true;
+    const { data, error } = await sb.from('posts')
+      .update({ status: 'approved' })
+      .eq('id', id)
+      .select('*')
+      .maybeSingle();
+    btn.disabled = false;
+    if (error || !data) {
+      return toast('Não foi possível aprovar este material.', 'error');
+    }
+    state.pendingPosts = state.pendingPosts.filter((x) => x.id !== id);
+    if (!state.posts.some((x) => x.id === id)) {
+      state.posts.unshift(data);
+    }
+    updateModBadge();
+    renderModerationGrid();
+    toast('Material aprovado e publicado!', 'success');
+  }
+
+  async function deletePost(id, btn, fromModeration = false) {
+    if (!canDelete()) return toast('Apenas os administradores podem excluir publicações.', 'error');
+    const p = findPostById(id);
+    if (!p) return;
+    const msg = fromModeration
+      ? `Recusar e excluir "${p.title}"? O arquivo será removido permanentemente.`
+      : `Excluir "${p.title}"? Essa ação não pode ser desfeita.`;
+    if (!window.confirm(msg)) return;
     btn.disabled = true;
     const { data, error } = await sb.from('posts').delete().eq('id', id).select('id');
     if (error || !data || data.length === 0) {
@@ -318,8 +406,11 @@
     const paths = [p.file_path, p.cover_path].filter(Boolean);
     if (paths.length) await sb.storage.from(BUCKET).remove(paths);
     state.posts = state.posts.filter((x) => x.id !== id);
-    renderGrid();
-    toast('Publicação excluída.', 'success');
+    state.pendingPosts = state.pendingPosts.filter((x) => x.id !== id);
+    updateModBadge();
+    if (fromModeration) renderModerationGrid();
+    else renderGrid();
+    toast(fromModeration ? 'Envio recusado e removido.' : 'Publicação excluída.', 'success');
   }
 
   // ---------- Roteador ----------
@@ -327,19 +418,32 @@
 
   function currentRoute() {
     const r = location.hash.replace(/^#\/?/, '').split('?')[0];
+    if (r === 'moderacao' && !isAdmin()) return 'inicio';
     return ROUTES.includes(r) ? r : 'inicio';
   }
 
   function route() {
     if (!state.user) return;
     const r = currentRoute();
+    if (location.hash.replace(/^#\/?/, '').split('?')[0] === 'moderacao' && !isAdmin()) {
+      history.replaceState(null, '', '#/inicio');
+    }
     $$('.nav a').forEach((a) => a.classList.toggle('active', a.dataset.route === r));
     closeMenu();
     window.scrollTo(0, 0);
     view.dataset.route = r;
-    const pageTitle = r === 'enviar' ? 'Enviar material' : r === 'sobre' ? 'Sobre' : r === 'inicio' ? '' : PAGES[r].title;
+    const pageTitle = r === 'moderacao'
+      ? 'Moderação'
+      : r === 'enviar'
+        ? 'Enviar material'
+        : r === 'sobre'
+          ? 'Sobre'
+          : r === 'inicio'
+            ? ''
+            : PAGES[r].title;
     document.title = pageTitle ? `${pageTitle} · ${SITE}` : SITE;
-    if (r === 'enviar') renderUpload();
+    if (r === 'moderacao') renderModeration();
+    else if (r === 'enviar') renderUpload();
     else if (r === 'sobre') renderAbout();
     else renderList(r);
   }
@@ -406,7 +510,7 @@
         <div class="card-actions">
           ${link ? `<a class="btn btn-primary btn-sm" href="${esc(link)}" target="_blank" rel="noopener noreferrer">${icon('external')}${esc(meta.action)}</a>` : ''}
           ${p.file_path ? `<button type="button" class="btn btn-sm${link ? '' : ' btn-primary'}" data-action="download" data-id="${esc(p.id)}">${icon('download')}Baixar</button>` : ''}
-          ${canDelete(p) ? `<button type="button" class="btn btn-sm btn-danger" data-action="delete" data-id="${esc(p.id)}" aria-label="Excluir ${esc(p.title)}">${icon('trash')}</button>` : ''}
+          ${canDelete() ? `<button type="button" class="btn btn-sm btn-danger" data-action="delete" data-id="${esc(p.id)}" aria-label="Excluir ${esc(p.title)}">${icon('trash')}</button>` : ''}
         </div>
       </article>`;
   }
@@ -443,7 +547,82 @@
     const btn = e.target.closest('[data-action]');
     if (!btn) return;
     if (btn.dataset.action === 'download') downloadPost(btn.dataset.id, btn);
-    if (btn.dataset.action === 'delete') deletePost(btn.dataset.id, btn);
+    if (btn.dataset.action === 'delete') deletePost(btn.dataset.id, btn, false);
+  }
+
+  // ---------- Página: moderação (apenas admins) ----------
+  function moderationCardHtml(p) {
+    const cat = CATS[p.category] ? p.category : 'outros';
+    const meta = CATS[cat];
+    const cover = state.covers[p.cover_path];
+    const link = p.link_url ? safeUrl(p.link_url) : null;
+    const size = p.file_size ? fmtSize(p.file_size) : '';
+    return `
+      <article class="card" data-cat="${cat}">
+        <div class="card-cover">
+          ${cover ? `<img src="${esc(cover)}" alt="" loading="lazy">` : icon(cat)}
+          <span class="badge">${icon(cat)}${esc(meta.label)}</span>
+        </div>
+        <div class="card-body">
+          <h3>${esc(p.title)}</h3>
+          ${p.description ? `<p class="desc">${esc(p.description)}</p>` : ''}
+          <div class="meta">
+            <span>por ${esc(p.author_name || 'Aluno')}</span>
+            <span>${esc(fmtDate(p.created_at))}</span>
+            ${size ? `<span>${esc(size)}</span>` : ''}
+          </div>
+        </div>
+        <div class="card-actions">
+          ${link ? `<a class="btn btn-sm" href="${esc(link)}" target="_blank" rel="noopener noreferrer">${icon('external')}${esc(meta.action)}</a>` : ''}
+          ${p.file_path ? `<button type="button" class="btn btn-sm" data-action="download" data-id="${esc(p.id)}">${icon('download')}Baixar</button>` : ''}
+          <button type="button" class="btn btn-primary btn-sm" data-action="approve" data-id="${esc(p.id)}">${icon('check')}Aprovar</button>
+          <button type="button" class="btn btn-sm btn-danger" data-action="reject" data-id="${esc(p.id)}" aria-label="Recusar ${esc(p.title)}">${icon('trash')}</button>
+        </div>
+      </article>`;
+  }
+
+  function renderModerationGrid() {
+    const grid = $('#mod-grid');
+    if (!grid) return;
+    const list = state.pendingPosts;
+    const count = $('#mod-count');
+    count.hidden = list.length === 0;
+    count.textContent = list.length === 1 ? '1 envio pendente' : `${list.length} envios pendentes`;
+
+    if (list.length === 0) {
+      grid.innerHTML = `
+        <div class="empty">
+          <h3>Nenhum envio pendente</h3>
+          <p>Todos os envios já foram revisados.</p>
+        </div>`;
+      return;
+    }
+    grid.innerHTML = list.map(moderationCardHtml).join('');
+  }
+
+  function onModerationClick(e) {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    const id = btn.dataset.id;
+    if (btn.dataset.action === 'download') downloadPost(id, btn);
+    if (btn.dataset.action === 'approve') approvePost(id, btn);
+    if (btn.dataset.action === 'reject') deletePost(id, btn, true);
+  }
+
+  function renderModeration() {
+    if (!isAdmin()) {
+      location.hash = '#/inicio';
+      return;
+    }
+    view.replaceChildren($('#tpl-moderation').content.cloneNode(true));
+    $('#mod-grid').addEventListener('click', onModerationClick);
+
+    if (state.pendingLoaded) {
+      renderModerationGrid();
+    } else {
+      $('#mod-grid').innerHTML = '<div class="skeleton"></div>'.repeat(3);
+      loadPendingPosts().then(() => { if (view.dataset.route === 'moderacao') renderModerationGrid(); });
+    }
   }
 
   // ---------- Página: enviar ----------
@@ -533,9 +712,14 @@
       return fail('Não foi possível publicar. Verifique sua conexão e tente novamente.');
     }
 
-    state.loaded = false; // força recarregar a lista
-    toast('Material publicado!', 'success');
-    location.hash = `#/${category}`;
+    if (isAdmin()) {
+      state.loaded = false;
+      toast('Material publicado!', 'success');
+      location.hash = `#/${category}`;
+    } else {
+      toast('Enviado para análise! Um administrador irá revisar antes de publicar.', 'success');
+      location.hash = '#/inicio';
+    }
   }
 
   // ---------- Página: sobre ----------
