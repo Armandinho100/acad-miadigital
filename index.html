@@ -2,44 +2,58 @@
 <html lang="pt-BR" data-theme="dark">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Academia Digital</title>
-  <meta name="description" content="Plataforma da faculdade para compartilhar jogos, documentos, links e vídeos entre alunos.">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#07080c">
-  <link rel="icon" type="image/jpeg" href="logo_ad.jpeg">
+  <title>Academia Digital</title>
   <script>
-    try { var t = localStorage.getItem('ad-theme'); if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t); } catch (e) {}
+    try {
+      const t = localStorage.getItem('ad-theme');
+      if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+    } catch (_) {}
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Sora:wght@500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <noscript>
+    <p style="padding:2rem;text-align:center">Este site precisa de JavaScript ativado.</p>
+  </noscript>
 
-  <!-- Aviso quando o config.js ainda não foi preenchido -->
-  <main id="setup-warning" class="auth" hidden>
-    <section class="auth-card">
-      <h1>Falta conectar o Supabase</h1>
-      <p class="lead">Abra o arquivo <strong>config.js</strong> e cole a <em>Project URL</em> e a <em>chave pública</em> do seu projeto no Supabase. Depois salve e recarregue a página.</p>
-    </section>
-  </main>
-
-  <!-- Carregando -->
-  <div id="splash" class="splash" role="status" aria-live="polite">
-    <div class="spinner" aria-hidden="true"></div>
-    <span class="sr-only">Carregando…</span>
+  <div id="splash" class="splash" aria-label="Carregando">
+    <div class="spinner"></div>
   </div>
 
-  <!-- Tela de login / cadastro -->
-  <main id="auth-view" class="auth" hidden>
-    <section class="auth-card">
+  <!-- Aviso caso config.js ainda não tenha sido preenchido -->
+  <section id="setup-warning" class="auth" hidden>
+    <div class="auth-card">
       <div class="auth-brand">
-        <span class="logo" aria-hidden="true">
-          <img src="logo_ad.jpeg" alt="" loading="eager">
+        <span class="logo">
+          <img src="logo_ad.jpeg" alt="Logo Academia Digital">
         </span>
         <h1 data-site-name>Academia Digital</h1>
-        <p class="lead">Jogos, documentos, links e vídeos da faculdade, em um só lugar.</p>
+      </div>
+      <h2>Configuração pendente</h2>
+      <p class="lead" style="margin-top:.6rem">
+        Abra o arquivo <code>config.js</code> e cole o <strong>Project URL</strong> e a chave
+        <strong>anon public</strong> do seu projeto no Supabase.
+      </p>
+      <p class="hint" style="margin-top:1rem">
+        O passo a passo completo está no arquivo <code>README.md</code>.
+      </p>
+    </div>
+  </section>
+
+  <!-- Tela de login / cadastro -->
+  <section id="auth-view" class="auth" hidden>
+    <div class="auth-card">
+      <div class="auth-brand">
+        <span class="logo">
+          <img src="logo_ad.jpeg" alt="Logo Academia Digital">
+        </span>
+        <h1 data-site-name>Academia Digital</h1>
+        <p class="hint">Repositório da turma. Entre para acessar.</p>
       </div>
 
       <div class="tabs" role="tablist">
@@ -50,54 +64,61 @@
       <form id="form-login" novalidate>
         <label class="field">
           <span>E-mail</span>
-          <input type="email" name="email" autocomplete="email" inputmode="email" required>
+          <input name="email" type="email" autocomplete="email" required placeholder="voce@exemplo.com">
         </label>
         <label class="field">
           <span>Senha</span>
-          <input type="password" name="password" autocomplete="current-password" required>
+          <input name="password" type="password" autocomplete="current-password" required placeholder="••••••••">
         </label>
-        <label class="check"><input type="checkbox" class="toggle-pass"><span>Mostrar senha</span></label>
+        <label class="check">
+          <input type="checkbox" class="toggle-pass">
+          <span>Mostrar senha</span>
+        </label>
         <p class="form-error" role="alert" hidden></p>
         <button type="submit" class="btn btn-primary btn-block">Entrar</button>
       </form>
 
-      <form id="form-register" novalidate hidden>
+      <form id="form-register" hidden novalidate>
         <label class="field">
-          <span>Nome (aparece nas suas publicações)</span>
-          <input type="text" name="name" autocomplete="name" maxlength="60" required>
+          <span>Seu nome</span>
+          <input name="name" type="text" autocomplete="name" required maxlength="60" placeholder="Como seu nome aparece nas postagens">
         </label>
         <label class="field">
           <span>E-mail</span>
-          <input type="email" name="email" autocomplete="email" inputmode="email" required>
+          <input name="email" type="email" autocomplete="email" required placeholder="voce@exemplo.com">
         </label>
         <label class="field">
-          <span>Senha (mínimo 8 caracteres)</span>
-          <input type="password" name="password" autocomplete="new-password" minlength="8" required>
+          <span>Senha <small>(mínimo 8 caracteres)</small></span>
+          <input name="password" type="password" autocomplete="new-password" required minlength="8" placeholder="••••••••">
         </label>
-        <label class="check"><input type="checkbox" class="toggle-pass"><span>Mostrar senha</span></label>
+        <label class="check">
+          <input type="checkbox" class="toggle-pass">
+          <span>Mostrar senha</span>
+        </label>
         <p class="form-error" role="alert" hidden></p>
         <button type="submit" class="btn btn-primary btn-block">Criar conta</button>
       </form>
-    </section>
-  </main>
+    </div>
+  </section>
 
-  <!-- Aplicativo (só aparece logado) -->
+  <!-- Aplicação (visível apenas para quem está logado) -->
   <div id="app" hidden>
     <header class="topbar">
-      <a class="brand" href="#/inicio">
-        <span class="logo" aria-hidden="true">
-          <img src="logo_ad.jpeg" alt="" loading="eager">
+      <a href="#/inicio" class="brand">
+        <span class="logo">
+          <img src="logo_ad.jpeg" alt="Logo Academia Digital">
         </span>
         <span data-site-name>Academia Digital</span>
       </a>
 
-      <nav id="nav" class="nav" aria-label="Navegação principal">
+      <nav id="nav" class="nav" aria-label="Principal">
         <a href="#/inicio" data-route="inicio">Início</a>
         <a href="#/jogos" data-route="jogos">Jogos</a>
         <a href="#/documentos" data-route="documentos">Documentos</a>
         <a href="#/links" data-route="links">Links</a>
         <a href="#/videos" data-route="videos">Vídeos</a>
         <a href="#/outros" data-route="outros">Outros</a>
+        <a href="#/tcc" data-route="tcc">TCC</a>
         <a href="#/sobre" data-route="sobre">Sobre</a>
         <a href="#/moderacao" data-route="moderacao" id="nav-mod" class="nav-mod" hidden>
           Moderação <span id="mod-badge" class="badge-count" hidden>0</span>
@@ -106,55 +127,66 @@
       </nav>
 
       <div class="top-actions">
-        <span class="user-chip" title="Sua conta">
-          <span id="user-name">—</span>
+        <div class="user-chip" id="user-chip">
+          <span id="user-name"></span>
           <span id="admin-badge" class="badge-admin" hidden>Admin</span>
-        </span>
-        <button type="button" id="theme-btn" class="icon-btn" aria-label="Alternar tema claro/escuro" title="Alternar tema">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+        </div>
+
+        <button type="button" class="icon-btn" id="theme-btn" aria-label="Alternar tema" title="Alternar tema claro/escuro">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/>
+          </svg>
         </button>
-        <button type="button" id="logout-btn" class="icon-btn" aria-label="Sair" title="Sair">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></svg>
+
+        <button type="button" class="icon-btn" id="logout-btn" aria-label="Sair" title="Sair da conta">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <path d="M16 17l5-5-5-5"/>
+            <path d="M21 12H9"/>
+          </svg>
         </button>
-        <button type="button" id="menu-btn" class="icon-btn menu-btn" aria-label="Abrir menu" aria-expanded="false" aria-controls="nav">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+
+        <button type="button" class="icon-btn menu-btn" id="menu-btn" aria-label="Abrir menu" aria-expanded="false" aria-controls="nav">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <path d="M4 7h16M4 12h16M4 17h16"/>
+          </svg>
         </button>
       </div>
     </header>
 
-    <main id="view" class="container"></main>
+    <main id="view" class="container" tabindex="-1"></main>
 
     <footer class="footer">
-      <span>© <span id="year"></span> <span data-site-name>Academia Digital</span> · Projeto acadêmico</span>
+      <p>© <span id="year"></span> <span data-site-name>Academia Digital</span> · Projeto acadêmico</p>
     </footer>
   </div>
 
-  <!-- Modal para gerenciar acesso de material privado -->
+  <!-- Modal para gerenciar acesso de materiais privados -->
   <dialog id="access-modal" class="modal">
     <div class="modal-card">
       <div class="modal-head">
-        <div>
-          <p class="eyebrow">Controle de acesso</p>
-          <h3 id="access-modal-title">Quem pode ver este material</h3>
-        </div>
-        <button type="button" id="close-access-modal" class="icon-btn" aria-label="Fechar">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        <h3 id="access-modal-title">Gerenciar acesso</h3>
+        <button type="button" class="icon-btn" id="close-access-modal" aria-label="Fechar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <path d="M18 6 6 18M6 6l12 12"/>
+          </svg>
         </button>
       </div>
-      <p class="hint" style="margin-bottom:.75rem;">Você (dono) e os administradores sempre têm acesso. Selecione abaixo os alunos autorizados:</p>
-      <input type="search" id="access-search" placeholder="Filtrar alunos pelo nome…" autocomplete="off" style="margin-bottom:.75rem;">
+      <p class="hint" style="margin-bottom:.85rem">Selecione quais alunos podem visualizar e baixar este material.</p>
+      <div class="field" style="margin-bottom:.75rem">
+        <input id="access-search" type="search" placeholder="Filtrar aluno por nome…">
+      </div>
       <div id="access-users-list" class="users-checklist"></div>
-      <div class="form-actions" style="margin-top:1rem;">
-        <button type="button" id="cancel-access-btn" class="btn btn-sm">Cancelar</button>
-        <button type="button" id="save-access-btn" class="btn btn-primary btn-sm">Salvar permissões</button>
+      <div class="form-actions" style="margin-top:1rem">
+        <button type="button" class="btn" id="cancel-access-btn">Cancelar</button>
+        <button type="button" class="btn btn-primary" id="save-access-btn">Salvar permissões</button>
       </div>
     </div>
   </dialog>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <!-- ===== Modelos de páginas ===== -->
-
+  <!-- Modelos das páginas -->
   <template id="tpl-list">
     <section class="page">
       <header class="page-head">
@@ -163,37 +195,42 @@
           <h2 id="list-title"></h2>
           <p class="lead" id="list-sub"></p>
         </div>
+        <a href="#/enviar" class="btn btn-primary">+ Enviar material</a>
       </header>
 
-      <!-- Mural de Avisos (aparece na aba Início) -->
-      <section id="board-section" class="board" hidden aria-labelledby="board-heading">
+      <!-- Mural de Avisos (exibido apenas na aba Início) -->
+      <section id="board-section" class="board" hidden>
         <div class="board-head">
           <div class="board-title-wrap">
             <span class="board-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2v4M4.9 4.9l2.8 2.8M19.1 4.9l-2.8 2.8"/>
+                <path d="M9 18h6M10 21h4"/>
+                <path d="M12 7a5 5 0 0 1 3.5 8.5c-.6.6-1 1.3-1.1 2.1H9.6c-.1-.8-.5-1.5-1.1-2.1A5 5 0 0 1 12 7z"/>
+              </svg>
             </span>
             <div>
-              <h3 id="board-heading">Mural de avisos</h3>
-              <p class="board-sub">Comunicados e orientações importantes da turma</p>
+              <h3>Mural de Avisos</h3>
+              <p class="board-sub">Comunicados e recados importantes publicados pela administração.</p>
             </div>
           </div>
-          <button type="button" id="new-notice-btn" class="btn btn-primary btn-sm" hidden>+ Novo aviso</button>
+          <button type="button" class="btn btn-primary btn-sm" id="new-notice-btn" hidden>+ Novo aviso</button>
         </div>
 
         <form id="notice-form" class="notice-form" hidden novalidate>
           <h4 id="notice-form-title">Novo aviso no mural</h4>
-          <input type="hidden" name="id" value="">
+          <input type="hidden" name="id">
           <label class="field">
             <span>Título do aviso</span>
-            <input type="text" name="title" maxlength="120" placeholder="Ex.: Entrega do trabalho da Unidade 2" required>
+            <input name="title" type="text" required maxlength="100" placeholder="Ex.: Entrega da atividade final ou link da reunião">
           </label>
           <label class="field">
             <span>Mensagem</span>
-            <textarea name="content" rows="3" maxlength="2000" placeholder="Escreva aqui as orientações para os alunos…" required></textarea>
+            <textarea name="content" rows="3" required maxlength="1500" placeholder="Escreva os detalhes do comunicado para a turma..."></textarea>
           </label>
           <label class="field">
-            <span>Link complementar <small>(opcional)</small></span>
-            <input type="url" name="link" inputmode="url" placeholder="https://…">
+            <span>Link opcional <small>(ex.: reunião, formulário ou documento)</small></span>
+            <input name="link" type="url" placeholder="https://...">
           </label>
           <label class="check">
             <input type="checkbox" name="pinned">
@@ -201,30 +238,32 @@
           </label>
           <p class="form-error" role="alert" hidden></p>
           <div class="form-actions">
-            <button type="button" id="cancel-notice-btn" class="btn btn-sm">Cancelar</button>
+            <button type="button" class="btn btn-sm" id="cancel-notice-btn">Cancelar</button>
             <button type="submit" class="btn btn-primary btn-sm">Salvar aviso</button>
           </div>
         </form>
 
         <div id="notices-list" class="notices-list"></div>
         <div id="notices-more-wrap" class="notices-more-wrap" hidden>
-          <button type="button" id="notices-more-btn" class="btn btn-sm"></button>
+          <button type="button" class="btn btn-sm" id="notices-more-btn">Ver mais avisos</button>
         </div>
       </section>
 
       <div class="toolbar">
-        <label class="search">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-          <input type="search" id="q" placeholder="Buscar por título, descrição ou autor" aria-label="Buscar materiais" autocomplete="off">
-        </label>
+        <div class="search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>
+          </svg>
+          <input id="q" type="search" placeholder="Buscar por título, descrição ou autor…" autocomplete="off">
+        </div>
         <select id="sort" aria-label="Ordenar por">
           <option value="recent">Mais recentes</option>
           <option value="old">Mais antigos</option>
-          <option value="az">Título (A–Z)</option>
+          <option value="az">A – Z</option>
         </select>
       </div>
 
-      <p class="count" id="count" aria-live="polite"></p>
+      <p class="count" id="count" hidden></p>
       <div class="grid" id="grid"></div>
     </section>
   </template>
@@ -234,12 +273,11 @@
       <header class="page-head">
         <div>
           <p class="eyebrow">Administração</p>
-          <h2>Aprovação de envios</h2>
-          <p class="lead">Revise os materiais enviados pelos alunos antes de ficarem visíveis no site.</p>
+          <h2>Fila de moderação</h2>
+          <p class="lead">Aprove ou recuse os materiais enviados pelos alunos antes de ficarem visíveis no site.</p>
         </div>
       </header>
-
-      <p class="count" id="mod-count" aria-live="polite"></p>
+      <p class="count" id="mod-count" hidden></p>
       <div class="grid" id="mod-grid"></div>
     </section>
   </template>
@@ -248,16 +286,16 @@
     <section class="page narrow">
       <header class="page-head">
         <div>
-          <p class="eyebrow">Compartilhar</p>
+          <p class="eyebrow">Contribuir</p>
           <h2>Enviar material</h2>
-          <p class="lead" id="upload-lead">Publique um arquivo, um link, ou os dois. Após aprovação da moderação, ficará visível para todos os alunos logados.</p>
+          <p class="lead" id="upload-lead">Publique um arquivo, um link, ou ambos.</p>
         </div>
       </header>
 
       <form id="form-upload" class="panel" novalidate>
         <label class="field">
           <span>Categoria</span>
-          <select name="category" id="up-category" required></select>
+          <select id="up-category" name="category" required></select>
         </label>
 
         <div class="field">
@@ -281,34 +319,38 @@
         </div>
 
         <div id="private-users-box" class="field private-box" hidden>
-          <span>Liberar acesso para quais alunos? <small>(opcional agora, você pode editar depois)</small></span>
-          <input type="search" id="up-user-search" placeholder="Buscar aluno pelo nome…" autocomplete="off">
+          <span>Quem pode acessar este material privado?</span>
+          <small style="margin-bottom:.4rem">Você e os administradores já têm acesso automático.</small>
+          <input id="up-user-search" type="search" placeholder="Buscar colega por nome…" style="margin-bottom:.5rem">
           <div id="up-users-list" class="users-checklist"></div>
         </div>
 
         <label class="field">
           <span>Título</span>
-          <input type="text" name="title" maxlength="120" placeholder="Ex.: Jogo da memória em HTML" required>
+          <input name="title" type="text" required maxlength="80" placeholder="Ex.: Jogo da Velha em JS, Resumo de Redes, Anteprojeto TCC…">
         </label>
 
         <label class="field">
           <span>Descrição <small id="desc-count">0/1000</small></span>
-          <textarea name="description" rows="4" maxlength="1000" placeholder="Conte do que se trata, como usar, disciplina, etc."></textarea>
+          <textarea name="description" rows="4" maxlength="1000" placeholder="Explique do que se trata, como jogar ou o que há no arquivo."></textarea>
         </label>
 
         <label class="field">
           <span>Link <small>(opcional, mas obrigatório na categoria Links)</small></span>
-          <input type="url" name="link" inputmode="url" placeholder="https://…">
-          <small class="hint" id="link-hint">Para jogos online, cole aqui o link para jogar.</small>
+          <input name="link" type="url" placeholder="https://...">
+          <small class="hint" id="link-hint"></small>
         </label>
 
         <div class="field">
           <label for="up-file"><span>Arquivo <small>(opcional)</small></span></label>
-          <input type="file" name="file" id="up-file" class="file-input">
+          <input id="up-file" name="file" type="file" class="file-input"
+                 accept=".pdf,.zip,.rar,.7z,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.png,.jpg,.jpeg,.gif,.webp,.mp4,.webm,.mp3">
           <div id="file-preview" class="file-chip" hidden>
             <span id="file-preview-text"></span>
-            <button type="button" id="clear-file-btn" class="chip-clear" aria-label="Remover arquivo selecionado" title="Remover arquivo">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            <button type="button" class="chip-clear" id="clear-file-btn" aria-label="Remover arquivo" title="Remover arquivo">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+                <path d="M18 6 6 18M6 6l12 12"/>
+              </svg>
             </button>
           </div>
           <small class="hint">Até 25 MB. Tipos aceitos: PDF, ZIP, RAR, 7Z, DOC(X), PPT(X), XLS(X), TXT, imagens, MP4, WEBM e MP3.</small>
@@ -316,11 +358,13 @@
 
         <div class="field">
           <label for="up-cover"><span>Imagem de capa <small>(opcional)</small></span></label>
-          <input type="file" name="cover" id="up-cover" class="file-input" accept="image/png,image/jpeg,image/webp,image/gif">
+          <input id="up-cover" name="cover" type="file" class="file-input" accept="image/png,image/jpeg,image/webp,image/gif">
           <div id="cover-preview-wrap" class="cover-preview-wrap" hidden>
-            <img id="cover-preview-img" src="" alt="Prévia da capa">
-            <button type="button" id="clear-cover-btn" class="btn btn-sm btn-danger">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            <img id="cover-preview-img" src="" alt="Pré-visualização da capa">
+            <button type="button" class="btn btn-sm btn-danger" id="clear-cover-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                <path d="M18 6 6 18M6 6l12 12"/>
+              </svg>
               Remover capa
             </button>
           </div>
@@ -328,9 +372,10 @@
         </div>
 
         <p class="form-error" id="upload-error" role="alert" hidden></p>
+
         <div class="form-actions">
-          <a class="btn" href="#/inicio">Cancelar</a>
-          <button type="submit" id="upload-submit-btn" class="btn btn-primary">Publicar</button>
+          <a href="#/inicio" class="btn">Cancelar</a>
+          <button type="submit" class="btn btn-primary" id="upload-submit-btn">Publicar</button>
         </div>
       </form>
     </section>
@@ -340,34 +385,28 @@
     <section class="page narrow">
       <header class="page-head">
         <div>
-          <p class="eyebrow">Sobre</p>
-          <h2><span data-site-name>Academia Digital</span></h2>
-          <p class="lead">Um espaço feito pelos alunos para compartilhar o que produzem e estudam.</p>
+          <p class="eyebrow">Projeto</p>
+          <h2>Sobre o <span data-site-name>Academia Digital</span></h2>
         </div>
       </header>
 
       <div class="panel prose">
-        <h3>Como funciona</h3>
+        <p>O <strong data-site-name>Academia Digital</strong> é um espaço simples para reunir jogos, documentos, links, vídeos, materiais de TCC e outros arquivos compartilhados pelos alunos.</p>
+
+        <h3>Como usar</h3>
         <ul>
-          <li>Crie sua conta com e-mail e senha. É preciso estar logado para ver e baixar qualquer material.</li>
-          <li>Use <strong>Enviar</strong> para publicar um arquivo, um link ou os dois, escolhendo entre <strong>Público</strong> ou <strong>Privado</strong>.</li>
-          <li>Em materiais privados, apenas o autor, os administradores e os alunos selecionados têm acesso.</li>
+          <li>Entre com sua conta da turma (ou crie uma na tela de entrada).</li>
+          <li>Navegue pelas categorias no topo ou use a busca para encontrar qualquer material.</li>
+          <li>Clique em <strong>+ Enviar</strong> para publicar um arquivo, um link externo ou ambos.</li>
+          <li>Você pode escolher se o material será <strong>Público</strong> (para toda a turma) ou <strong>Privado</strong> (apenas para você, admins e colegas selecionados).</li>
+          <li>Envios feitos por alunos passam por aprovação da moderação antes de aparecerem no site.</li>
         </ul>
 
-        <h3>Categorias</h3>
+        <h3>Boas práticas</h3>
         <ul>
-          <li><strong>Jogos:</strong> jogos criados pelos alunos, online ou para baixar.</li>
-          <li><strong>Documentos:</strong> PDFs, slides, planilhas e textos.</li>
-          <li><strong>Links:</strong> sites, pastas do Drive e outras referências.</li>
-          <li><strong>Vídeos:</strong> vídeos enviados ou links do YouTube e similares.</li>
-          <li><strong>Outros:</strong> qualquer material que não se encaixe nas anteriores.</li>
-        </ul>
-
-        <h3>Regras de convivência</h3>
-        <ul>
-          <li>Publique apenas conteúdo que você tem direito de compartilhar.</li>
-          <li>Não envie material ofensivo, ilegal ou com dados pessoais de outras pessoas.</li>
-          <li>Apenas os administradores podem aprovar novos envios ou remover publicações do site.</li>
+          <li>Escolha um título claro e descreva bem o conteúdo.</li>
+          <li>Respeite direitos autorais e publique apenas materiais que possam ser compartilhados.</li>
+          <li>Arquivos grandes (acima de 25 MB) devem ser publicados por meio de um link externo.</li>
         </ul>
       </div>
     </section>
