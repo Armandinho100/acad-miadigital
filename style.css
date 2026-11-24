@@ -25,6 +25,7 @@
   --c-links: #5bb8ff;
   --c-videos: #ff7a90;
   --c-outros: #f0b45a;
+  --c-tcc: #4fd1c5;
 
   --radius: 16px;
   --font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
@@ -54,6 +55,7 @@
   --c-links: #1f7fd1;
   --c-videos: #d6405a;
   --c-outros: #c58116;
+  --c-tcc: #0d8a7e;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -458,6 +460,7 @@ input:focus, select:focus, textarea:focus {
 .card[data-cat="links"] { --cat: var(--c-links); }
 .card[data-cat="videos"] { --cat: var(--c-videos); }
 .card[data-cat="outros"] { --cat: var(--c-outros); }
+.card[data-cat="tcc"] { --cat: var(--c-tcc); }
 .card:hover {
   transform: translateY(-3px);
   border-color: color-mix(in srgb, var(--cat) 55%, var(--border));
