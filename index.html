@@ -8,7 +8,6 @@
   <meta name="theme-color" content="#07080c">
   <link rel="icon" type="image/jpeg" href="logo_ad.jpeg">
   <script>
-    // Aplica o tema salvo antes de desenhar a página (evita "piscar")
     try { var t = localStorage.getItem('ad-theme'); if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t); } catch (e) {}
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -130,6 +129,28 @@
     </footer>
   </div>
 
+  <!-- Modal para gerenciar acesso de material privado -->
+  <dialog id="access-modal" class="modal">
+    <div class="modal-card">
+      <div class="modal-head">
+        <div>
+          <p class="eyebrow">Controle de acesso</p>
+          <h3 id="access-modal-title">Quem pode ver este material</h3>
+        </div>
+        <button type="button" id="close-access-modal" class="icon-btn" aria-label="Fechar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <p class="hint" style="margin-bottom:.75rem;">Você (dono) e os administradores sempre têm acesso. Selecione abaixo os alunos autorizados:</p>
+      <input type="search" id="access-search" placeholder="Filtrar alunos pelo nome…" autocomplete="off" style="margin-bottom:.75rem;">
+      <div id="access-users-list" class="users-checklist"></div>
+      <div class="form-actions" style="margin-top:1rem;">
+        <button type="button" id="cancel-access-btn" class="btn btn-sm">Cancelar</button>
+        <button type="button" id="save-access-btn" class="btn btn-primary btn-sm">Salvar permissões</button>
+      </div>
+    </div>
+  </dialog>
+
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <!-- ===== Modelos de páginas ===== -->
@@ -239,6 +260,32 @@
           <select name="category" id="up-category" required></select>
         </label>
 
+        <div class="field">
+          <span>Visibilidade</span>
+          <div class="visibility-group" role="radiogroup" aria-label="Visibilidade do material">
+            <label class="vis-option">
+              <input type="radio" name="visibility" value="public" checked>
+              <div>
+                <strong>Público</strong>
+                <small>Todos os alunos logados podem ver e baixar</small>
+              </div>
+            </label>
+            <label class="vis-option">
+              <input type="radio" name="visibility" value="private">
+              <div>
+                <strong>Privado</strong>
+                <small>Apenas você, admins e alunos que você liberar</small>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div id="private-users-box" class="field private-box" hidden>
+          <span>Liberar acesso para quais alunos? <small>(opcional agora, você pode editar depois)</small></span>
+          <input type="search" id="up-user-search" placeholder="Buscar aluno pelo nome…" autocomplete="off">
+          <div id="up-users-list" class="users-checklist"></div>
+        </div>
+
         <label class="field">
           <span>Título</span>
           <input type="text" name="title" maxlength="120" placeholder="Ex.: Jogo da memória em HTML" required>
@@ -303,8 +350,8 @@
         <h3>Como funciona</h3>
         <ul>
           <li>Crie sua conta com e-mail e senha. É preciso estar logado para ver e baixar qualquer material.</li>
-          <li>Use <strong>Enviar</strong> para publicar um arquivo, um link ou os dois.</li>
-          <li>Em cada publicação aprovada você pode <strong>baixar</strong> o arquivo ou <strong>acessar</strong> o link (por exemplo, jogar um jogo online).</li>
+          <li>Use <strong>Enviar</strong> para publicar um arquivo, um link ou os dois, escolhendo entre <strong>Público</strong> ou <strong>Privado</strong>.</li>
+          <li>Em materiais privados, apenas o autor, os administradores e os alunos selecionados têm acesso.</li>
         </ul>
 
         <h3>Categorias</h3>
