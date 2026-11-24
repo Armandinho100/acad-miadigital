@@ -1,6 +1,6 @@
 // =====================================================
 //  ACADEMIA DIGITAL — lógica do site
-//  Login (e-mail e senha), listagem, moderação,
+//  Login, mural de avisos, listagem, moderação,
 //  envio e exclusão de materiais usando o Supabase.
 // =====================================================
 (() => {
@@ -52,6 +52,13 @@
 
   const fmtDate = (iso) => new Date(iso).toLocaleDateString('pt-BR');
 
+  function fmtDateTime(iso) {
+    const d = new Date(iso);
+    const date = d.toLocaleDateString('pt-BR');
+    const time = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    return `${date} às ${time}`;
+  }
+
   let toastTimer;
   function toast(msg, type = 'info') {
     const t = $('#toast');
@@ -72,6 +79,8 @@
     external: '<path d="M14 4h6v6M20 4l-9 9"/><path d="M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4"/>',
     trash: '<path d="M4 7h16M10 11v6M14 11v6"/><path d="M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/>',
     check: '<path d="M20 6 9 17l-5-5"/>',
+    clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    edit: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
   };
   const icon = (name) =>
     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON_PATHS[name] || ''}</svg>`;
@@ -85,7 +94,7 @@
   };
 
   const PAGES = {
-    inicio: { eyebrow: 'Início', title: 'Tudo em um só lugar', sub: 'Materiais compartilhados pelos alunos da faculdade.' },
+    inicio: { eyebrow: 'Início', title: 'Tudo em um só lugar', sub: 'Avisos da turma e materiais compartilhados pelos alunos.' },
     jogos: { eyebrow: 'Categoria', title: 'Jogos', sub: 'Jogos criados pelos alunos. Jogue online ou baixe.' },
     documentos: { eyebrow: 'Categoria', title: 'Documentos', sub: 'PDFs, slides, planilhas e textos para estudo.' },
     links: { eyebrow: 'Categoria', title: 'Links', sub: 'Sites, pastas e referências úteis.' },
@@ -100,9 +109,11 @@
     profile: null,
     posts: [],
     pendingPosts: [],
+    notices: [],
     covers: {},
     loaded: false,
     pendingLoaded: false,
+    noticesLoaded: false,
     filters: { q: '', sort: 'recent', cat: 'all' },
   };
 
@@ -271,8 +282,10 @@
       state.profile = null;
       state.posts = [];
       state.pendingPosts = [];
+      state.notices = [];
       state.loaded = false;
       state.pendingLoaded = false;
+      state.noticesLoaded = false;
       updateModBadge();
       closeMenu();
       showScreen('auth');
@@ -302,7 +315,163 @@
     setTimeout(() => handleSession(session), 0);
   });
 
-  // ---------- Dados ----------
+  // ---------- Dados: Mural de Avisos ----------
+  async function loadNotices() {
+    const { data, error } = await sb.from('notices').select('*')
+      .order('pinned', { ascending: false })
+      .order('updated_at', { ascending: false })
+      .limit(50);
+    if (error) {
+      console.error(error);
+      state.notices = [];
+    } else {
+      state.notices = data || [];
+    }
+    state.noticesLoaded = true;
+  }
+
+  function sortNotices() {
+    state.notices.sort((a, b) => {
+      if (Boolean(a.pinned) !== Boolean(b.pinned)) return a.pinned ? -1 : 1;
+      return new Date(b.updated_at) - new Date(a.updated_at);
+    });
+  }
+
+  function openNoticeForm(notice = null) {
+    const form = $('#notice-form');
+    if (!form) return;
+    setError(form, '');
+    form.hidden = false;
+    $('#notice-form-title').textContent = notice ? 'Editar aviso' : 'Novo aviso no mural';
+    form.elements.id.value = notice ? notice.id : '';
+    form.elements.title.value = notice ? notice.title : '';
+    form.elements.content.value = notice ? notice.content : '';
+    form.elements.link.value = notice && notice.link_url ? notice.link_url : '';
+    form.elements.pinned.checked = Boolean(notice && notice.pinned);
+    form.elements.title.focus();
+  }
+
+  function closeNoticeForm() {
+    const form = $('#notice-form');
+    if (!form) return;
+    form.reset();
+    form.elements.id.value = '';
+    setError(form, '');
+    form.hidden = true;
+  }
+
+  function renderBoard() {
+    const section = $('#board-section');
+    const listEl = $('#notices-list');
+    const newBtn = $('#new-notice-btn');
+    if (!section || !listEl) return;
+
+    const admin = isAdmin();
+    if (newBtn) newBtn.hidden = !admin;
+
+    if (!admin && state.notices.length === 0) {
+      section.hidden = true;
+      return;
+    }
+
+    section.hidden = false;
+    sortNotices();
+
+    if (state.notices.length === 0) {
+      listEl.innerHTML = '<div class="notice-empty">Nenhum aviso publicado no mural ainda. Clique em <strong>+ Novo aviso</strong> para publicar o primeiro.</div>';
+      return;
+    }
+
+    listEl.innerHTML = state.notices.map((n) => {
+      const link = n.link_url ? safeUrl(n.link_url) : null;
+      return `
+        <article class="notice-item${n.pinned ? ' pinned' : ''}">
+          <div class="notice-top">
+            <div class="notice-title-row">
+              ${n.pinned ? '<span class="pin-tag">Fixado</span>' : ''}
+              <h4>${esc(n.title)}</h4>
+            </div>
+            ${link ? `<a class="btn btn-sm" href="${esc(link)}" target="_blank" rel="noopener noreferrer">${icon('external')}Abrir link</a>` : ''}
+          </div>
+          <p class="notice-body">${esc(n.content)}</p>
+          <div class="notice-foot">
+            <div class="notice-meta">
+              <span>por ${esc(n.author_name || 'Admin')}</span>
+              <span class="notice-updated">${icon('clock')}Atualizado em ${esc(fmtDateTime(n.updated_at))}</span>
+            </div>
+            ${admin ? `
+              <div class="notice-actions">
+                <button type="button" class="btn btn-sm" data-notice-action="edit" data-id="${esc(n.id)}">${icon('edit')}Editar</button>
+                <button type="button" class="btn btn-sm btn-danger" data-notice-action="delete" data-id="${esc(n.id)}" aria-label="Excluir aviso ${esc(n.title)}">${icon('trash')}</button>
+              </div>` : ''}
+          </div>
+        </article>`;
+    }).join('');
+  }
+
+  async function saveNotice(e) {
+    e.preventDefault();
+    if (!isAdmin()) return toast('Apenas os administradores podem publicar avisos.', 'error');
+    const form = e.currentTarget;
+    setError(form, '');
+
+    const id = form.elements.id.value.trim();
+    const title = form.elements.title.value.trim();
+    const content = form.elements.content.value.trim();
+    const rawLink = form.elements.link.value.trim();
+    const pinned = form.elements.pinned.checked;
+
+    if (title.length < 2) return setError(form, 'Digite um título para o aviso.');
+    if (content.length < 2) return setError(form, 'Escreva a mensagem do aviso.');
+    const link = rawLink ? safeUrl(rawLink) : null;
+    if (rawLink && !link) return setError(form, 'Digite um link válido começando com http:// ou https://.');
+
+    const btn = $('button[type="submit"]', form);
+    setBusy(btn, true, 'Salvando…');
+
+    if (id) {
+      const { data, error } = await sb.from('notices')
+        .update({ title, content, link_url: link, pinned })
+        .eq('id', id)
+        .select('*')
+        .maybeSingle();
+      setBusy(btn, false);
+      if (error || !data) return setError(form, 'Não foi possível atualizar o aviso.');
+      state.notices = state.notices.map((x) => (x.id === id ? data : x));
+      closeNoticeForm();
+      renderBoard();
+      toast('Aviso atualizado!', 'success');
+    } else {
+      const { data, error } = await sb.from('notices')
+        .insert({ user_id: state.user.id, title, content, link_url: link, pinned })
+        .select('*')
+        .maybeSingle();
+      setBusy(btn, false);
+      if (error || !data) return setError(form, 'Não foi possível publicar o aviso.');
+      state.notices.unshift(data);
+      closeNoticeForm();
+      renderBoard();
+      toast('Aviso publicado no mural!', 'success');
+    }
+  }
+
+  async function deleteNotice(id, btn) {
+    if (!isAdmin()) return toast('Apenas os administradores podem excluir avisos.', 'error');
+    const n = state.notices.find((x) => x.id === id);
+    if (!n) return;
+    if (!window.confirm(`Excluir o aviso "${n.title}"?`)) return;
+    btn.disabled = true;
+    const { data, error } = await sb.from('notices').delete().eq('id', id).select('id');
+    if (error || !data || data.length === 0) {
+      btn.disabled = false;
+      return toast('Não foi possível excluir este aviso.', 'error');
+    }
+    state.notices = state.notices.filter((x) => x.id !== id);
+    renderBoard();
+    toast('Aviso excluído.', 'success');
+  }
+
+  // ---------- Dados: Materiais ----------
   async function attachCovers(items) {
     const paths = items.map((p) => p.cover_path).filter(Boolean);
     if (!paths.length) return;
@@ -461,6 +630,29 @@
     $('#list-title').textContent = page.title;
     $('#list-sub').textContent = page.sub;
     $('#sort').value = state.filters.sort;
+
+    if (r === 'inicio') {
+      $('#new-notice-btn').addEventListener('click', () => openNoticeForm());
+      $('#cancel-notice-btn').addEventListener('click', closeNoticeForm);
+      $('#notice-form').addEventListener('submit', saveNotice);
+      $('#notices-list').addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-notice-action]');
+        if (!btn) return;
+        const id = btn.dataset.id;
+        if (btn.dataset.noticeAction === 'edit') {
+          const item = state.notices.find((x) => x.id === id);
+          if (item) openNoticeForm(item);
+        } else if (btn.dataset.noticeAction === 'delete') {
+          deleteNotice(id, btn);
+        }
+      });
+
+      if (state.noticesLoaded) {
+        renderBoard();
+      } else {
+        loadNotices().then(() => { if (view.dataset.route === 'inicio') renderBoard(); });
+      }
+    }
 
     $('#q').addEventListener('input', (e) => { state.filters.q = e.target.value; renderGrid(); });
     $('#sort').addEventListener('change', (e) => { state.filters.sort = e.target.value; renderGrid(); });
