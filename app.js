@@ -1,5 +1,5 @@
 // =====================================================
-//  ACADEMIA DIGITAL — lógica do site
+//  BLOG LETRAS CAMPUS III — lógica do site
 //  Login, aprovação de alunos, mural de avisos, listagem,
 //  moderação, envio, privacidade, TCC e exclusão.
 // =====================================================
@@ -7,7 +7,7 @@
   'use strict';
 
   const CFG = window.APP_CONFIG || {};
-  const SITE = CFG.SITE_NAME || 'Academia Digital';
+  const SITE = CFG.SITE_NAME || 'Blog letras campus III';
   const BUCKET = 'materiais';
   const MB = 1024 * 1024;
   const MAX_FILE = 25 * MB;
@@ -132,7 +132,7 @@
   };
 
   const PAGES = {
-    inicio: { eyebrow: 'Início', title: 'Tudo em um só lugar', sub: 'Avisos da turma e materiais compartilhados pelos alunos.' },
+    inicio: { eyebrow: 'Campus III · Letras', title: 'Tudo em um só lugar', sub: 'Avisos da turma e materiais compartilhados pelo Blog letras campus III.' },
     jogos: { eyebrow: 'Categoria', title: 'Jogos', sub: 'Jogos criados pelos alunos. Jogue online ou baixe.' },
     documentos: { eyebrow: 'Categoria', title: 'Documentos', sub: 'PDFs, slides, planilhas e textos para estudo.' },
     links: { eyebrow: 'Categoria', title: 'Links', sub: 'Sites, pastas e referências úteis.' },
@@ -178,6 +178,28 @@
   document.title = SITE;
   $$('[data-site-name]').forEach((n) => { n.textContent = SITE; });
   $('#year').textContent = new Date().getFullYear();
+
+  // ---------- Botões flutuantes (FAB) ----------
+  const fabTop = $('#fab-top');
+  const fabUpload = $('#fab-upload');
+
+  function syncFabState(routeName) {
+    if (fabUpload) {
+      fabUpload.classList.toggle('is-current', routeName === 'enviar');
+    }
+  }
+
+  function syncScrollFab() {
+    if (!fabTop) return;
+    fabTop.classList.toggle('visible', window.scrollY > 260);
+  }
+
+  if (fabTop) {
+    fabTop.addEventListener('click', () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  }
+  window.addEventListener('scroll', syncScrollFab, { passive: true });
 
   // ---------- Verificação da configuração ----------
   const configured = CFG.SUPABASE_URL && CFG.SUPABASE_KEY
@@ -388,7 +410,6 @@
     state.user = session.user;
     state.profile = await loadProfile(session.user);
 
-    // Se o usuário ainda não foi aprovado por um administrador, bloqueia acesso ao app
     if (!state.profile || !state.profile.approved) {
       $('#pending-user-name').textContent = state.profile?.name || session.user.email;
       showScreen('pending');
@@ -884,8 +905,10 @@
       history.replaceState(null, '', '#/inicio');
     }
     $$('.nav a').forEach((a) => a.classList.toggle('active', a.dataset.route === r));
+    syncFabState(r);
     closeMenu();
     window.scrollTo(0, 0);
+    syncScrollFab();
     view.dataset.route = r;
     const pageTitle = r === 'moderacao'
       ? 'Moderação'
@@ -912,7 +935,7 @@
 
     view.replaceChildren($('#tpl-list').content.cloneNode(true));
     const firstName = ((state.profile && state.profile.name) || '').trim().split(/\s+/)[0];
-    $('#list-eyebrow').textContent = r === 'inicio' && firstName ? `Olá, ${firstName}` : page.eyebrow;
+    $('#list-eyebrow').textContent = r === 'inicio' && firstName ? `Campus III · Letras · Olá, ${firstName}` : page.eyebrow;
     $('#list-title').textContent = page.title;
     $('#list-sub').textContent = page.sub;
     $('#sort').value = state.filters.sort;
@@ -1014,10 +1037,10 @@
       let text = 'Tente buscar com outras palavras.';
       if (state.posts.length === 0) {
         title = 'Ainda não há materiais aqui';
-        text = 'Seja o primeiro a compartilhar! Use a aba Enviar, no menu.';
+        text = 'Seja o primeiro a compartilhar! Use o botão flutuante Enviar.';
       } else if (!state.filters.q.trim()) {
         title = 'Nada por aqui ainda';
-        text = 'Ainda não há materiais nesta categoria. Use a aba Enviar, no menu, para publicar o primeiro.';
+        text = 'Ainda não há materiais nesta categoria. Use o botão flutuante Enviar para publicar o primeiro.';
       }
       grid.innerHTML = `
         <div class="empty">
@@ -1143,7 +1166,7 @@
     select.innerHTML = Object.entries(CATS).map(([k, v]) => `<option value="${k}">${esc(v.label)}</option>`).join('');
 
     if (isAdmin()) {
-      $('#upload-lead').textContent = 'Publique um arquivo, um link, ou ambos diretamente no site.';
+      $('#upload-lead').textContent = 'Publique um arquivo, um link, ou ambos diretamente no Blog letras campus III.';
       $('#upload-submit-btn').textContent = 'Publicar agora';
     } else {
       $('#upload-lead').textContent = 'Publique um arquivo, um link, ou ambos. Após aprovação de um administrador, ficará visível conforme a privacidade escolhida.';
