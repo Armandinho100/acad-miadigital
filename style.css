@@ -660,3 +660,19 @@ input:focus, select:focus, textarea:focus {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
+/* ---------- Lista de alunos aguardando aprovação ---------- */
+.pending-users-list {
+  display: grid;
+  gap: .65rem;
+}
+.pending-user-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  flex-wrap: wrap;
+  padding: .75rem 1rem;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+}
