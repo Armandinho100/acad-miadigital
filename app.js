@@ -1,7 +1,7 @@
 // =====================================================
 //  BLOG LETRAS CAMPUS III — lógica do site
-//  Login, aprovação de alunos, mural de avisos, listagem,
-//  moderação, envio, privacidade, TCC e exclusão.
+//  Login, aprovação de alunos, diretório de integrantes,
+//  mural de avisos, listagem, moderação, envio e TCC.
 // =====================================================
 (() => {
   'use strict';
@@ -58,21 +58,39 @@
     return `${date} às ${time}`;
   }
 
+  function formatPhone(raw) {
+    const digits = String(raw || '').replace(/\D/g, '');
+    if (!digits) return '';
+    if (digits.length === 11) {
+      return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+    }
+    if (digits.length === 10) {
+      return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+    }
+    return String(raw).trim();
+  }
+
+  function whatsappUrl(raw) {
+    let digits = String(raw || '').replace(/\D/g, '');
+    if (digits.length < 10) return null;
+    if (!digits.startsWith('55') && (digits.length === 10 || digits.length === 11)) {
+      digits = `55${digits}`;
+    }
+    return `https://wa.me/${digits}`;
+  }
+
+  function initials(name) {
+    const parts = String(name || 'A').trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+  }
+
   function formatSupabaseError(err) {
     if (!err) return 'Erro desconhecido.';
     if (typeof err === 'string') return err;
-    const parts = [
-      err.message,
-      err.details,
-      err.hint,
-      err.error_description,
-    ].filter(Boolean);
+    const parts = [err.message, err.details, err.hint, err.error_description].filter(Boolean);
     if (parts.length) return parts.join(' — ');
-    try {
-      return JSON.stringify(err);
-    } catch (_) {
-      return 'Erro ao comunicar com o servidor.';
-    }
+    try { return JSON.stringify(err); } catch (_) { return 'Erro ao comunicar com o servidor.'; }
   }
 
   let toastTimer;
@@ -118,6 +136,8 @@
     edit: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
     lock: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
     users: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+    mail: '<rect x="2" y="4" width="20" height="16" rx="3"/><path d="m22 7-10 6L2 7"/>',
+    phone: '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/>',
   };
   const icon = (name) =>
     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON_PATHS[name] || ''}</svg>`;
@@ -140,12 +160,13 @@
     outros: { eyebrow: 'Categoria', title: 'Outros', sub: 'Materiais que não se encaixam nas demais categorias.' },
     tcc: { eyebrow: 'Trabalho de Conclusão de Curso', title: 'TCC', sub: 'Anteprojetos, monografias, apresentações, códigos e referências de TCC.' },
   };
-  const ROUTES = ['inicio', 'jogos', 'documentos', 'links', 'videos', 'outros', 'tcc', 'moderacao', 'enviar', 'sobre'];
+  const ROUTES = ['inicio', 'jogos', 'documentos', 'links', 'videos', 'outros', 'tcc', 'integrantes', 'moderacao', 'enviar', 'sobre'];
 
   // ---------- Estado ----------
   const state = {
     user: null,
     profile: null,
+    allProfiles: [],
     usersList: [],
     pendingUsers: [],
     usersLoaded: false,
@@ -158,6 +179,7 @@
     pendingLoaded: false,
     noticesLoaded: false,
     filters: { q: '', sort: 'recent', cat: 'all' },
+    memberFilters: { q: '', sort: 'az', tab: 'all' },
   };
 
   const isAdmin = () => Boolean(state.profile && state.profile.role === 'admin' && state.profile.approved);
@@ -185,16 +207,12 @@
   const scrollBar = $('#scroll-progress');
 
   function syncFabState(routeName) {
-    if (fabUpload) {
-      fabUpload.classList.toggle('is-current', routeName === 'enviar');
-    }
+    if (fabUpload) fabUpload.classList.toggle('is-current', routeName === 'enviar');
   }
 
   function syncScrollUi() {
     const y = window.scrollY;
-    if (fabTop) {
-      fabTop.classList.toggle('visible', y > 260);
-    }
+    if (fabTop) fabTop.classList.toggle('visible', y > 260);
     if (scrollBar) {
       const max = document.documentElement.scrollHeight - window.innerHeight;
       const pct = max > 0 ? Math.min(100, Math.max(0, (y / max) * 100)) : 0;
@@ -203,9 +221,7 @@
   }
 
   if (fabTop) {
-    fabTop.addEventListener('click', () => {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
+    fabTop.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
   }
   window.addEventListener('scroll', syncScrollUi, { passive: true });
   window.addEventListener('resize', syncScrollUi, { passive: true });
@@ -265,6 +281,16 @@
     if (input) input.type = cb.checked ? 'text' : 'password';
   }));
 
+  const regPhoneInput = $('#form-register input[name="phone"]');
+  if (regPhoneInput) {
+    regPhoneInput.addEventListener('input', (e) => {
+      const d = e.target.value.replace(/\D/g, '').slice(0, 11);
+      if (d.length > 6) e.target.value = `(${d.slice(0, 2)}) ${d.slice(2, d.length - 4)}-${d.slice(-4)}`;
+      else if (d.length > 2) e.target.value = `(${d.slice(0, 2)}) ${d.slice(2)}`;
+      else if (d.length > 0) e.target.value = `(${d}`;
+    });
+  }
+
   function setError(form, msg) {
     const p = $('.form-error', form);
     p.textContent = msg || '';
@@ -307,13 +333,20 @@
     setError(f, '');
     const name = f.elements.name.value.trim();
     const email = f.elements.email.value.trim();
+    const phone = f.elements.phone.value.trim();
+    const phoneDigits = phone.replace(/\D/g, '');
     const password = f.elements.password.value;
     if (name.length < 2) return setError(f, 'Digite seu nome.');
     if (!email) return setError(f, 'Digite seu e-mail.');
+    if (phoneDigits.length < 10) return setError(f, 'Digite um número de celular válido com DDD.');
     if (password.length < 8) return setError(f, 'A senha precisa ter pelo menos 8 caracteres.');
     const btn = $('button[type="submit"]', f);
     setBusy(btn, true, 'Enviando solicitação…');
-    const { data, error } = await sb.auth.signUp({ email, password, options: { data: { name } } });
+    const { data, error } = await sb.auth.signUp({
+      email,
+      password,
+      options: { data: { name, phone: formatPhone(phoneDigits) } },
+    });
     setBusy(btn, false);
     if (error) return setError(f, authMessage(error));
     if (!data.session) {
@@ -321,13 +354,8 @@
     }
   });
 
-  $('#logout-btn').addEventListener('click', async () => {
-    await sb.auth.signOut();
-  });
-
-  $('#pending-logout-btn').addEventListener('click', async () => {
-    await sb.auth.signOut();
-  });
+  $('#logout-btn').addEventListener('click', async () => { await sb.auth.signOut(); });
+  $('#pending-logout-btn').addEventListener('click', async () => { await sb.auth.signOut(); });
 
   $('#pending-refresh-btn').addEventListener('click', async () => {
     if (!state.user) return;
@@ -345,12 +373,15 @@
     }
   });
 
-  // ---------- Botão de moderação e contador ----------
-  function updateModBadge() {
+  // ---------- Botões exclusivos de admin no topo ----------
+  function updateAdminNav() {
     const navMod = $('#nav-mod');
+    const navMembers = $('#nav-members');
     const badge = $('#mod-badge');
+    const admin = isAdmin();
+    if (navMembers) navMembers.hidden = !admin;
     if (!navMod || !badge) return;
-    if (!isAdmin()) {
+    if (!admin) {
       navMod.hidden = true;
       badge.hidden = true;
       return;
@@ -366,7 +397,7 @@
 
   async function loadProfile(user) {
     for (let i = 0; i < 3; i += 1) {
-      const { data } = await sb.from('profiles').select('name, role, approved').eq('id', user.id).maybeSingle();
+      const { data } = await sb.from('profiles').select('name, role, approved, email, phone').eq('id', user.id).maybeSingle();
       if (data) return data;
       await new Promise((r) => setTimeout(r, 400));
     }
@@ -374,16 +405,19 @@
       name: (user.user_metadata && user.user_metadata.name) || user.email.split('@')[0],
       role: 'user',
       approved: false,
+      email: user.email,
+      phone: user.user_metadata?.phone || '',
     };
   }
 
   async function loadAllUsers(force = false) {
     if (state.usersLoaded && !force) return state.usersList;
     const { data, error } = await sb.from('profiles')
-      .select('id, name, role, approved, created_at')
+      .select('id, name, email, phone, role, approved, created_at')
       .order('created_at', { ascending: false })
       .limit(500);
     if (!error && data) {
+      state.allProfiles = data;
       state.usersList = data.filter((u) => u.approved);
       state.pendingUsers = data.filter((u) => !u.approved);
       state.usersLoaded = true;
@@ -396,6 +430,7 @@
       currentUserId = null;
       state.user = null;
       state.profile = null;
+      state.allProfiles = [];
       state.usersList = [];
       state.pendingUsers = [];
       state.usersLoaded = false;
@@ -406,7 +441,7 @@
       state.loaded = false;
       state.pendingLoaded = false;
       state.noticesLoaded = false;
-      updateModBadge();
+      updateAdminNav();
       closeMenu();
       showScreen('auth');
       return;
@@ -427,13 +462,13 @@
 
     $('#user-name').textContent = state.profile.name;
     $('#admin-badge').hidden = !isAdmin();
-    updateModBadge();
+    updateAdminNav();
     if (isAdmin()) {
       await Promise.all([
         !state.pendingLoaded ? loadPendingPosts() : Promise.resolve(),
         loadAllUsers(true),
       ]);
-      updateModBadge();
+      updateAdminNav();
     }
     showScreen('app');
     if (location.hash !== '#/inicio') history.replaceState(null, '', '#/inicio');
@@ -443,6 +478,159 @@
   sb.auth.onAuthStateChange((_event, session) => {
     setTimeout(() => handleSession(session), 0);
   });
+
+  // ---------- Pasta Administrativa: Diretório de Integrantes ----------
+  function renderMembersStats() {
+    const statsEl = $('#members-stats');
+    if (!statsEl) return;
+    const total = state.allProfiles.length;
+    const admins = state.allProfiles.filter((u) => u.role === 'admin' && u.approved).length;
+    const approved = state.allProfiles.filter((u) => u.role !== 'admin' && u.approved).length;
+    const pending = state.allProfiles.filter((u) => !u.approved).length;
+
+    statsEl.innerHTML = `
+      <div class="stat-box"><strong>${total}</strong><span>Total cadastrados</span></div>
+      <div class="stat-box accent-2"><strong>${admins}</strong><span>Administradores</span></div>
+      <div class="stat-box accent-1"><strong>${approved}</strong><span>Alunos ativos</span></div>
+      <div class="stat-box"><strong>${pending}</strong><span>Aguardando aprovação</span></div>
+    `;
+  }
+
+  function filteredMembers() {
+    const { q, sort, tab } = state.memberFilters;
+    const term = q.trim().toLowerCase();
+    const list = state.allProfiles.filter((u) => {
+      if (tab === 'admin' && !(u.role === 'admin' && u.approved)) return false;
+      if (tab === 'approved' && !(u.role !== 'admin' && u.approved)) return false;
+      if (tab === 'pending' && u.approved) return false;
+      if (!term) return true;
+      return [u.name, u.email, u.phone].some((v) => String(v || '').toLowerCase().includes(term));
+    });
+
+    if (sort === 'recent') {
+      list.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    } else if (sort === 'role') {
+      list.sort((a, b) => {
+        const ra = a.role === 'admin' ? 0 : 1;
+        const rb = b.role === 'admin' ? 0 : 1;
+        if (ra !== rb) return ra - rb;
+        return String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR');
+      });
+    } else {
+      list.sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR'));
+    }
+    return list;
+  }
+
+  function memberCardHtml(u) {
+    const isAdm = u.role === 'admin' && u.approved;
+    const statusClass = isAdm ? 'is-admin' : (!u.approved ? 'is-pending' : '');
+    const roleBadge = isAdm
+      ? '<span class="role-pill admin">Admin</span>'
+      : (u.approved
+        ? '<span class="role-pill approved">Aluno aprovado</span>'
+        : '<span class="role-pill pending">Pendente</span>');
+
+    const email = u.email ? String(u.email).trim() : '';
+    const phone = u.phone ? formatPhone(u.phone) : '';
+    const wa = phone ? whatsappUrl(phone) : null;
+
+    return `
+      <article class="member-card ${statusClass}">
+        <div class="member-top">
+          <div class="member-avatar" aria-hidden="true">${esc(initials(u.name))}</div>
+          <div class="member-info">
+            <h3 title="${esc(u.name || 'Integrante')}">${esc(u.name || 'Integrante')}</h3>
+            <div class="member-badges">
+              ${roleBadge}
+              <span class="hint">desde ${esc(fmtDate(u.created_at))}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="member-contacts">
+          <div class="contact-row">
+            ${icon('mail')}
+            <span title="${esc(email || 'Não informado')}">${esc(email || 'E-mail não informado')}</span>
+          </div>
+          <div class="contact-row">
+            ${icon('phone')}
+            <span>${esc(phone || 'Celular não informado')}</span>
+          </div>
+        </div>
+
+        <div class="member-actions">
+          ${wa ? `<a class="btn btn-sm btn-whatsapp" href="${esc(wa)}" target="_blank" rel="noopener noreferrer">${icon('external')}WhatsApp</a>` : ''}
+          ${phone ? `<button type="button" class="btn btn-sm" data-copy="${esc(phone)}" data-label="Celular">${icon('copy')}Celular</button>` : ''}
+          ${email ? `<button type="button" class="btn btn-sm" data-copy="${esc(email)}" data-label="E-mail">${icon('copy')}E-mail</button>` : ''}
+        </div>
+      </article>`;
+  }
+
+  function renderMembersGrid() {
+    const grid = $('#members-grid');
+    const count = $('#members-count');
+    if (!grid) return;
+
+    const list = filteredMembers();
+    if (count) {
+      count.hidden = list.length === 0;
+      count.textContent = list.length === 1 ? '1 integrante encontrado' : `${list.length} integrantes encontrados`;
+    }
+
+    if (list.length === 0) {
+      grid.innerHTML = `
+        <div class="empty">
+          <h3>Nenhum integrante encontrado</h3>
+          <p>Ajuste o filtro ou busque por outro nome, e-mail ou número.</p>
+        </div>`;
+      return;
+    }
+
+    grid.innerHTML = list.map(memberCardHtml).join('');
+  }
+
+  function renderMembers() {
+    if (!isAdmin()) {
+      location.hash = '#/inicio';
+      return;
+    }
+    state.memberFilters = { q: '', sort: 'az', tab: 'all' };
+    view.replaceChildren($('#tpl-members').content.cloneNode(true));
+
+    $('#members-filter-pills').addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-mfilter]');
+      if (!btn) return;
+      state.memberFilters.tab = btn.dataset.mfilter;
+      $$('#members-filter-pills .pill-btn').forEach((b) => b.classList.toggle('active', b === btn));
+      renderMembersGrid();
+    });
+
+    $('#members-q').addEventListener('input', (e) => {
+      state.memberFilters.q = e.target.value;
+      renderMembersGrid();
+    });
+
+    $('#members-sort').addEventListener('change', (e) => {
+      state.memberFilters.sort = e.target.value;
+      renderMembersGrid();
+    });
+
+    $('#members-grid').addEventListener('click', async (e) => {
+      const btn = e.target.closest('[data-copy]');
+      if (!btn) return;
+      const ok = await copyToClipboard(btn.dataset.copy);
+      toast(ok ? `${btn.dataset.label} copiado!` : 'Não foi possível copiar.', ok ? 'success' : 'error');
+    });
+
+    $('#members-grid').innerHTML = '<div class="skeleton"></div>'.repeat(3);
+    loadAllUsers(true).then(() => {
+      if (view.dataset.route === 'integrantes') {
+        renderMembersStats();
+        renderMembersGrid();
+      }
+    });
+  }
 
   // ---------- Aprovação / recusa de alunos (apenas admins) ----------
   function renderPendingUsers() {
@@ -460,37 +648,37 @@
       return;
     }
 
-    box.innerHTML = list.map((u) => `
-      <div class="pending-user-row">
-        <div>
-          <strong>${esc(u.name || 'Aluno')}</strong>
-          <small style="display:block;color:var(--muted)">Solicitado em ${esc(fmtDateTime(u.created_at))}</small>
-        </div>
-        <div style="display:flex;gap:.45rem">
-          <button type="button" class="btn btn-primary btn-sm" data-user-action="approve" data-id="${esc(u.id)}">${icon('check')}Aprovar entrada</button>
-          <button type="button" class="btn btn-danger btn-sm" data-user-action="reject" data-id="${esc(u.id)}">${icon('x')}Recusar</button>
-        </div>
-      </div>
-    `).join('');
+    box.innerHTML = list.map((u) => {
+      const extra = [u.email, u.phone ? formatPhone(u.phone) : ''].filter(Boolean).join(' · ');
+      return `
+        <div class="pending-user-row">
+          <div>
+            <strong>${esc(u.name || 'Aluno')}</strong>
+            ${extra ? `<small style="display:block;color:var(--accent)">${esc(extra)}</small>` : ''}
+            <small style="display:block;color:var(--muted)">Solicitado em ${esc(fmtDateTime(u.created_at))}</small>
+          </div>
+          <div style="display:flex;gap:.45rem">
+            <button type="button" class="btn btn-primary btn-sm" data-user-action="approve" data-id="${esc(u.id)}">${icon('check')}Aprovar entrada</button>
+            <button type="button" class="btn btn-danger btn-sm" data-user-action="reject" data-id="${esc(u.id)}">${icon('x')}Recusar</button>
+          </div>
+        </div>`;
+    }).join('');
   }
 
   async function approveUser(userId, btn) {
     if (!isAdmin()) return toast('Apenas administradores podem aprovar alunos.', 'error');
     btn.disabled = true;
-    const { error } = await sb.from('profiles')
-      .update({ approved: true })
-      .eq('id', userId);
+    const { error } = await sb.from('profiles').update({ approved: true }).eq('id', userId);
     btn.disabled = false;
-    if (error) {
-      return toast(`Não foi possível aprovar: ${formatSupabaseError(error)}`, 'error');
-    }
+    if (error) return toast(`Não foi possível aprovar: ${formatSupabaseError(error)}`, 'error');
+
     const approvedUser = state.pendingUsers.find((u) => u.id === userId);
     state.pendingUsers = state.pendingUsers.filter((u) => u.id !== userId);
     if (approvedUser) {
       approvedUser.approved = true;
       state.usersList.push(approvedUser);
     }
-    updateModBadge();
+    updateAdminNav();
     renderPendingUsers();
     toast('Aluno aprovado! Agora ele já pode entrar no site.', 'success');
   }
@@ -502,11 +690,11 @@
     btn.disabled = true;
     const { error } = await sb.from('profiles').delete().eq('id', userId);
     btn.disabled = false;
-    if (error) {
-      return toast(`Não foi possível recusar: ${formatSupabaseError(error)}`, 'error');
-    }
+    if (error) return toast(`Não foi possível recusar: ${formatSupabaseError(error)}`, 'error');
+
     state.pendingUsers = state.pendingUsers.filter((u) => u.id !== userId);
-    updateModBadge();
+    state.allProfiles = state.allProfiles.filter((u) => u.id !== userId);
+    updateAdminNav();
     renderPendingUsers();
     toast('Solicitação recusada.', 'success');
   }
@@ -810,7 +998,7 @@
     if (!isAdmin()) {
       state.pendingPosts = [];
       state.pendingLoaded = true;
-      updateModBadge();
+      updateAdminNav();
       return;
     }
     const { data, error } = await sb.from('posts').select('*')
@@ -826,7 +1014,7 @@
 
     await attachCovers(state.pendingPosts);
     state.pendingLoaded = true;
-    updateModBadge();
+    updateAdminNav();
   }
 
   function findPostById(id) {
@@ -862,14 +1050,11 @@
       .select('*')
       .maybeSingle();
     btn.disabled = false;
-    if (error || !data) {
-      return toast('Não foi possível aprovar este material.', 'error');
-    }
+    if (error || !data) return toast('Não foi possível aprovar este material.', 'error');
+
     state.pendingPosts = state.pendingPosts.filter((x) => x.id !== id);
-    if (!state.posts.some((x) => x.id === id)) {
-      state.posts.unshift(data);
-    }
-    updateModBadge();
+    if (!state.posts.some((x) => x.id === id)) state.posts.unshift(data);
+    updateAdminNav();
     renderModerationGrid();
     toast('Material aprovado e publicado!', 'success');
   }
@@ -892,7 +1077,7 @@
     if (paths.length) await sb.storage.from(BUCKET).remove(paths);
     state.posts = state.posts.filter((x) => x.id !== id);
     state.pendingPosts = state.pendingPosts.filter((x) => x.id !== id);
-    updateModBadge();
+    updateAdminNav();
     if (fromModeration) renderModerationGrid();
     else renderGrid();
     toast(fromModeration ? 'Envio recusado e removido.' : 'Publicação excluída.', 'success');
@@ -903,14 +1088,15 @@
 
   function currentRoute() {
     const r = location.hash.replace(/^#\/?/, '').split('?')[0];
-    if (r === 'moderacao' && !isAdmin()) return 'inicio';
+    if ((r === 'moderacao' || r === 'integrantes') && !isAdmin()) return 'inicio';
     return ROUTES.includes(r) ? r : 'inicio';
   }
 
   function route() {
     if (!state.user || !state.profile?.approved) return;
     const r = currentRoute();
-    if (location.hash.replace(/^#\/?/, '').split('?')[0] === 'moderacao' && !isAdmin()) {
+    const rawR = location.hash.replace(/^#\/?/, '').split('?')[0];
+    if ((rawR === 'moderacao' || rawR === 'integrantes') && !isAdmin()) {
       history.replaceState(null, '', '#/inicio');
     }
     $$('.nav a').forEach((a) => a.classList.toggle('active', a.dataset.route === r));
@@ -919,17 +1105,20 @@
     window.scrollTo(0, 0);
     syncScrollUi();
     view.dataset.route = r;
-    const pageTitle = r === 'moderacao'
-      ? 'Moderação'
-      : r === 'enviar'
-        ? 'Enviar material'
-        : r === 'sobre'
-          ? 'Sobre'
-          : r === 'inicio'
-            ? ''
-            : PAGES[r].title;
+    const pageTitle = r === 'integrantes'
+      ? 'Integrantes'
+      : r === 'moderacao'
+        ? 'Moderação'
+        : r === 'enviar'
+          ? 'Enviar material'
+          : r === 'sobre'
+            ? 'Sobre'
+            : r === 'inicio'
+              ? ''
+              : PAGES[r].title;
     document.title = pageTitle ? `${pageTitle} · ${SITE}` : SITE;
-    if (r === 'moderacao') renderModeration();
+    if (r === 'integrantes') renderMembers();
+    else if (r === 'moderacao') renderModeration();
     else if (r === 'enviar') renderUpload();
     else if (r === 'sobre') renderAbout();
     else renderList(r);
@@ -1172,7 +1361,7 @@
 
     loadAllUsers(true).then(() => {
       if (view.dataset.route === 'moderacao') {
-        updateModBadge();
+        updateAdminNav();
         renderPendingUsers();
       }
     });
