@@ -62,6 +62,7 @@
       </p>
       <p class="hint" style="margin-top:.75rem;line-height:1.6">
         Um administrador precisa aprovar sua entrada antes que você possa visualizar, baixar ou enviar materiais no site.
+        Esta tela verifica a aprovação automaticamente.
       </p>
       <div class="form-actions" style="justify-content:center;margin-top:1.5rem">
         <button type="button" id="pending-refresh-btn" class="btn btn-primary">Verificar aprovação</button>
@@ -164,6 +165,14 @@
         <a href="#/moderacao" data-route="moderacao" id="nav-mod" class="nav-mod" hidden>
           Moderação <span id="mod-badge" class="badge-count" hidden>0</span>
         </a>
+
+        <!-- Busca global (filtra os materiais da página atual) -->
+        <div class="nav-search" role="search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>
+          </svg>
+          <input id="global-q" type="search" placeholder="Buscar materiais…" autocomplete="off" aria-label="Buscar materiais por título, descrição ou autor">
+        </div>
       </nav>
 
       <div class="top-actions">
@@ -303,16 +312,9 @@
         </div>
       </section>
 
-      <!-- Filtro rápido por categoria (exibido apenas na aba Home) -->
-      <div id="category-pills" class="category-pills" role="tablist" aria-label="Filtrar por categoria" hidden></div>
-
-      <div class="toolbar">
-        <div class="search">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true">
-            <circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>
-          </svg>
-          <input id="q" type="search" placeholder="Buscar por título, descrição ou autor…" autocomplete="off">
-        </div>
+      <!-- Contagem e ordenação (a busca fica no topo do site) -->
+      <div class="list-head">
+        <p class="count" id="count" hidden></p>
         <select id="sort" aria-label="Ordenar por">
           <option value="recent">Mais recentes</option>
           <option value="old">Mais antigos</option>
@@ -320,7 +322,6 @@
         </select>
       </div>
 
-      <p class="count" id="count" hidden></p>
       <div class="grid" id="grid"></div>
     </section>
   </template>
