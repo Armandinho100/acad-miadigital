@@ -21,10 +21,10 @@
   --topbar-bg: rgba(7, 8, 12, .84);
 
   --c-jogos: #9a8cff;
-  --c-documentos: #38e0b4;
-  --c-links: #5bb8ff;
-  --c-videos: #ff7a90;
-  --c-outros: #f0b45a;
+  --c-estagio: #38e0b4;
+  --c-enade: #5bb8ff;
+  --c-extensao: #f0b45a;
+  --c-pesquisa: #ff7a90;
   --c-tcc: #4fd1c5;
 
   --radius: 16px;
@@ -52,10 +52,10 @@
   --topbar-bg: rgba(243, 245, 249, .88);
 
   --c-jogos: #6256e6;
-  --c-documentos: #0b9a76;
-  --c-links: #1f7fd1;
-  --c-videos: #d6405a;
-  --c-outros: #c58116;
+  --c-estagio: #0b9a76;
+  --c-enade: #1f7fd1;
+  --c-extensao: #c58116;
+  --c-pesquisa: #d6405a;
   --c-tcc: #0d8a7e;
 }
 
@@ -433,10 +433,7 @@ input:focus, select:focus, textarea:focus {
 .prose strong { color: var(--text); }
 
 /* ---------- Pasta Administrativa: Diretório de Integrantes ---------- */
-.folder-shell {
-  display: flex;
-  flex-direction: column;
-}
+.folder-shell { display: flex; flex-direction: column; }
 .folder-tab {
   display: inline-flex;
   align-items: center;
@@ -482,24 +479,12 @@ input:focus, select:focus, textarea:focus {
   display: grid;
   gap: .2rem;
 }
-.stat-box strong {
-  font-family: var(--font-head);
-  font-size: 1.45rem;
-  color: var(--text);
-}
-.stat-box span {
-  font-size: .78rem;
-  color: var(--muted);
-  font-weight: 600;
-}
+.stat-box strong { font-family: var(--font-head); font-size: 1.45rem; color: var(--text); }
+.stat-box span { font-size: .78rem; color: var(--muted); font-weight: 600; }
 .stat-box.accent-1 strong { color: var(--accent); }
 .stat-box.accent-2 strong { color: var(--accent-2); }
 
-.members-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(305px, 1fr));
-  gap: 1rem;
-}
+.members-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(305px, 1fr)); gap: 1rem; }
 .member-card {
   display: flex;
   flex-direction: column;
@@ -513,17 +498,13 @@ input:focus, select:focus, textarea:focus {
   transition: transform .18s, border-color .18s, box-shadow .18s;
 }
 .member-card.is-admin { border-left-color: var(--accent-2); }
-.member-card.is-pending { border-left-color: var(--c-outros); }
+.member-card.is-pending { border-left-color: var(--c-extensao); }
 .member-card:hover {
   transform: translateY(-2px);
   border-color: color-mix(in srgb, var(--accent) 52%, var(--border));
   box-shadow: var(--shadow);
 }
-.member-top {
-  display: flex;
-  align-items: center;
-  gap: .85rem;
-}
+.member-top { display: flex; align-items: center; gap: .85rem; }
 .member-avatar {
   width: 46px;
   height: 46px;
@@ -536,19 +517,8 @@ input:focus, select:focus, textarea:focus {
   flex-shrink: 0;
 }
 .member-info { min-width: 0; flex: 1; }
-.member-info h3 {
-  font-size: 1.02rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.member-badges {
-  display: flex;
-  align-items: center;
-  gap: .4rem;
-  flex-wrap: wrap;
-  margin-top: .25rem;
-}
+.member-info h3 { font-size: 1.02rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.member-badges { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; margin-top: .25rem; }
 .role-pill {
   display: inline-flex;
   align-items: center;
@@ -559,19 +529,16 @@ input:focus, select:focus, textarea:focus {
   text-transform: uppercase;
   letter-spacing: .04em;
 }
-.role-pill.admin {
-  color: var(--accent-ink);
-  background: var(--accent-2);
-}
+.role-pill.admin { color: var(--accent-ink); background: var(--accent-2); }
 .role-pill.approved {
   color: var(--accent);
   background: color-mix(in srgb, var(--accent) 14%, transparent);
   border: 1px solid color-mix(in srgb, var(--accent) 38%, transparent);
 }
 .role-pill.pending {
-  color: var(--c-outros);
-  background: color-mix(in srgb, var(--c-outros) 14%, transparent);
-  border: 1px solid color-mix(in srgb, var(--c-outros) 38%, transparent);
+  color: var(--c-extensao);
+  background: color-mix(in srgb, var(--c-extensao) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--c-extensao) 38%, transparent);
 }
 .member-contacts {
   display: grid;
@@ -582,30 +549,10 @@ input:focus, select:focus, textarea:focus {
   border: 1px solid var(--border);
   font-size: .86rem;
 }
-.contact-row {
-  display: flex;
-  align-items: center;
-  gap: .55rem;
-  color: var(--text);
-  min-width: 0;
-}
-.contact-row svg {
-  width: 15px;
-  height: 15px;
-  color: var(--accent);
-  flex-shrink: 0;
-}
-.contact-row span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.member-actions {
-  display: flex;
-  align-items: center;
-  gap: .45rem;
-  flex-wrap: wrap;
-}
+.contact-row { display: flex; align-items: center; gap: .55rem; color: var(--text); min-width: 0; }
+.contact-row svg { width: 15px; height: 15px; color: var(--accent); flex-shrink: 0; }
+.contact-row span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.member-actions { display: flex; align-items: center; gap: .45rem; flex-wrap: wrap; }
 .member-actions .btn { flex: 1 1 auto; }
 
 /* ---------- Mural de Avisos ---------- */
@@ -736,10 +683,10 @@ input:focus, select:focus, textarea:focus {
   transition: transform .2s, border-color .2s, box-shadow .2s;
 }
 .card[data-cat="jogos"] { --cat: var(--c-jogos); }
-.card[data-cat="documentos"] { --cat: var(--c-documentos); }
-.card[data-cat="links"] { --cat: var(--c-links); }
-.card[data-cat="videos"] { --cat: var(--c-videos); }
-.card[data-cat="outros"] { --cat: var(--c-outros); }
+.card[data-cat="estagio"] { --cat: var(--c-estagio); }
+.card[data-cat="enade"] { --cat: var(--c-enade); }
+.card[data-cat="extensao"] { --cat: var(--c-extensao); }
+.card[data-cat="pesquisa"] { --cat: var(--c-pesquisa); }
 .card[data-cat="tcc"] { --cat: var(--c-tcc); }
 .card:hover {
   transform: translateY(-3px);
