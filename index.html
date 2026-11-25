@@ -114,6 +114,10 @@
           <input name="email" type="email" autocomplete="email" required placeholder="voce@exemplo.com">
         </label>
         <label class="field">
+          <span>Celular / WhatsApp <small>(com DDD)</small></span>
+          <input name="phone" type="tel" autocomplete="tel" required maxlength="20" placeholder="(98) 99999-9999">
+        </label>
+        <label class="field">
           <span>Senha <small>(mínimo 8 caracteres)</small></span>
           <input name="password" type="password" autocomplete="new-password" required minlength="8" placeholder="••••••••">
         </label>
@@ -151,6 +155,12 @@
         <a href="#/outros" data-route="outros">Outros</a>
         <a href="#/tcc" data-route="tcc">TCC</a>
         <a href="#/sobre" data-route="sobre">Sobre</a>
+        <a href="#/integrantes" data-route="integrantes" id="nav-members" class="nav-members" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+          </svg>
+          Integrantes
+        </a>
         <a href="#/moderacao" data-route="moderacao" id="nav-mod" class="nav-mod" hidden>
           Moderação <span id="mod-badge" class="badge-count" hidden>0</span>
         </a>
@@ -312,6 +322,56 @@
 
       <p class="count" id="count" hidden></p>
       <div class="grid" id="grid"></div>
+    </section>
+  </template>
+
+  <!-- Pasta / Diretório de Integrantes (apenas Admins) -->
+  <template id="tpl-members">
+    <section class="page">
+      <div class="folder-shell">
+        <div class="folder-tab" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+          </svg>
+          <span>Pasta Administrativa · Campus III</span>
+        </div>
+
+        <div class="folder-body">
+          <header class="page-head">
+            <div>
+              <p class="eyebrow">Diretório de Contatos</p>
+              <h2>Integrantes do site</h2>
+              <p class="lead">Acesso rápido aos dados de contato (celular e e-mail) de todos os alunos e administradores cadastrados.</p>
+            </div>
+          </header>
+
+          <div class="stats-row" id="members-stats"></div>
+
+          <div class="category-pills" id="members-filter-pills" role="tablist" aria-label="Filtrar integrantes">
+            <button type="button" class="pill-btn active" data-mfilter="all">Todos</button>
+            <button type="button" class="pill-btn" data-mfilter="admin">Administradores</button>
+            <button type="button" class="pill-btn" data-mfilter="approved">Alunos aprovados</button>
+            <button type="button" class="pill-btn" data-mfilter="pending">Aguardando aprovação</button>
+          </div>
+
+          <div class="toolbar">
+            <div class="search">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true">
+                <circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>
+              </svg>
+              <input id="members-q" type="search" placeholder="Buscar integrante por nome, e-mail ou celular…" autocomplete="off">
+            </div>
+            <select id="members-sort" aria-label="Ordenar integrantes">
+              <option value="az">Nome (A – Z)</option>
+              <option value="recent">Mais recentes</option>
+              <option value="role">Admins primeiro</option>
+            </select>
+          </div>
+
+          <p class="count" id="members-count" hidden></p>
+          <div class="members-grid" id="members-grid"></div>
+        </div>
+      </div>
     </section>
   </template>
 
