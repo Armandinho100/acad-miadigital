@@ -136,7 +136,7 @@
     <div class="scroll-progress" id="scroll-progress" aria-hidden="true"></div>
 
     <header class="topbar">
-      <a href="#/inicio" class="brand">
+      <a href="#/home" class="brand">
         <span class="logo">
           <img src="logo_ad.jpeg" alt="Logo Blog letras campus III">
         </span>
@@ -147,31 +147,24 @@
       </a>
 
       <nav id="nav" class="nav" aria-label="Principal">
-        <a href="#/inicio" data-route="inicio">Início</a>
+        <a href="#/home" data-route="home">Home</a>
         <a href="#/jogos" data-route="jogos">Jogos</a>
-        <a href="#/documentos" data-route="documentos">Documentos</a>
-        <a href="#/links" data-route="links">Links</a>
-        <a href="#/videos" data-route="videos">Vídeos</a>
-        <a href="#/outros" data-route="outros">Outros</a>
+        <a href="#/estagio" data-route="estagio">Estágio</a>
+        <a href="#/enade" data-route="enade">Enade</a>
+        <a href="#/extensao" data-route="extensao">Extensão</a>
+        <a href="#/pesquisa" data-route="pesquisa">Pesquisa</a>
         <a href="#/tcc" data-route="tcc">TCC</a>
         <a href="#/sobre" data-route="sobre">Sobre</a>
-        <a href="#/moderacao" data-route="moderacao" id="nav-mod" class="nav-mod" hidden>
-          Moderação <span id="mod-badge" class="badge-count" hidden>0</span>
-        </a>
         <a href="#/integrantes" data-route="integrantes" id="nav-members" class="nav-members" hidden>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
           </svg>
           Integrantes
         </a>
+        <a href="#/moderacao" data-route="moderacao" id="nav-mod" class="nav-mod" hidden>
+          Moderação <span id="mod-badge" class="badge-count" hidden>0</span>
+        </a>
       </nav>
-
-      <div class="top-search" role="search">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true">
-          <circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>
-        </svg>
-        <input id="top-q" type="search" placeholder="Procurar arquivo pelo nome…" aria-label="Procurar arquivo pelo nome" autocomplete="off">
-      </div>
 
       <div class="top-actions">
         <div class="user-chip" id="user-chip">
@@ -202,6 +195,21 @@
     </header>
 
     <main id="view" class="container" tabindex="-1"></main>
+
+    <!-- Botões flutuantes (FAB) -->
+    <div class="fab-stack" aria-label="Ações rápidas">
+      <button type="button" id="fab-top" class="fab-btn fab-secondary" aria-label="Voltar ao topo" title="Voltar ao topo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="m18 15-6-6-6 6"/>
+        </svg>
+      </button>
+      <a href="#/enviar" id="fab-upload" class="fab-btn fab-primary" aria-label="Enviar material" title="Enviar material">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 5v14M5 12h14"/>
+        </svg>
+        <span class="fab-label">Enviar</span>
+      </a>
+    </div>
 
     <footer class="footer">
       <p>© <span id="year"></span> <span data-site-name>Blog letras campus III</span> · Letras · Campus III</p>
@@ -244,7 +252,7 @@
         </div>
       </header>
 
-      <!-- Mural de Avisos (exibido apenas na aba Início) -->
+      <!-- Mural de Avisos (exibido apenas na aba Home) -->
       <section id="board-section" class="board" hidden>
         <div class="board-head">
           <div class="board-title-wrap">
@@ -295,10 +303,16 @@
         </div>
       </section>
 
-      <!-- Filtro rápido por categoria (exibido apenas na aba Início) -->
+      <!-- Filtro rápido por categoria (exibido apenas na aba Home) -->
       <div id="category-pills" class="category-pills" role="tablist" aria-label="Filtrar por categoria" hidden></div>
 
       <div class="toolbar">
+        <div class="search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>
+          </svg>
+          <input id="q" type="search" placeholder="Buscar por título, descrição ou autor…" autocomplete="off">
+        </div>
         <select id="sort" aria-label="Ordenar por">
           <option value="recent">Mais recentes</option>
           <option value="old">Mais antigos</option>
@@ -341,6 +355,12 @@
           </div>
 
           <div class="toolbar">
+            <div class="search">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true">
+                <circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>
+              </svg>
+              <input id="members-q" type="search" placeholder="Buscar integrante por nome, e-mail ou celular…" autocomplete="off">
+            </div>
             <select id="members-sort" aria-label="Ordenar integrantes">
               <option value="az">Nome (A – Z)</option>
               <option value="recent">Mais recentes</option>
@@ -427,7 +447,7 @@
 
         <label class="field">
           <span>Título</span>
-          <input name="title" type="text" required maxlength="80" placeholder="Ex.: Análise Literária, Resumo de Linguística, Anteprojeto TCC…">
+          <input name="title" type="text" required maxlength="80" placeholder="Ex.: Relatório de Estágio, Simulado Enade, Projeto de Pesquisa…">
         </label>
 
         <label class="field">
@@ -436,7 +456,7 @@
         </label>
 
         <label class="field">
-          <span>Link <small>(opcional, mas obrigatório na categoria Links)</small></span>
+          <span>Link <small>(opcional)</small></span>
           <input name="link" type="url" placeholder="https://...">
           <small class="hint" id="link-hint"></small>
         </label>
@@ -474,7 +494,7 @@
         <p class="form-error" id="upload-error" role="alert" hidden></p>
 
         <div class="form-actions">
-          <a href="#/inicio" class="btn">Cancelar</a>
+          <a href="#/home" class="btn">Cancelar</a>
           <button type="submit" class="btn btn-primary" id="upload-submit-btn">Publicar</button>
         </div>
       </form>
@@ -491,12 +511,13 @@
       </header>
 
       <div class="panel prose">
-        <p>O <strong data-site-name>Blog letras campus III</strong> é um espaço acadêmico colaborativo para reunir jogos, documentos, links, vídeos, materiais de TCC e outros arquivos compartilhados pelos estudantes.</p>
+        <p>O <strong data-site-name>Blog letras campus III</strong> é um espaço acadêmico colaborativo para reunir jogos, estágio, Enade, extensão, pesquisa, materiais de TCC e outros arquivos compartilhados pelos estudantes.</p>
 
         <h3>Como usar</h3>
         <ul>
           <li>Solicite seu cadastro na tela inicial e aguarde a aprovação de um administrador.</li>
-          <li>Após aprovado, navegue pelas categorias no topo ou use a barra de pesquisa no topo para encontrar qualquer arquivo pelo nome.</li>
+          <li>Após aprovado, navegue pelas categorias no topo ou use a busca para encontrar qualquer material.</li>
+          <li>Use o botão flutuante <strong>Enviar</strong> no canto inferior direito para publicar um arquivo, um link externo ou ambos.</li>
           <li>Você pode escolher se o material será <strong>Público</strong> (para toda a turma) ou <strong>Privado</strong> (apenas para você, admins e colegas selecionados).</li>
           <li>Todos os envios passam por aprovação dos administradores antes de aparecerem no site.</li>
         </ul>
