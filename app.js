@@ -179,9 +179,10 @@
   $$('[data-site-name]').forEach((n) => { n.textContent = SITE; });
   $('#year').textContent = new Date().getFullYear();
 
-  // ---------- Botões flutuantes (FAB) ----------
+  // ---------- Botões flutuantes (FAB) e barra de progresso ----------
   const fabTop = $('#fab-top');
   const fabUpload = $('#fab-upload');
+  const scrollBar = $('#scroll-progress');
 
   function syncFabState(routeName) {
     if (fabUpload) {
@@ -189,9 +190,16 @@
     }
   }
 
-  function syncScrollFab() {
-    if (!fabTop) return;
-    fabTop.classList.toggle('visible', window.scrollY > 260);
+  function syncScrollUi() {
+    const y = window.scrollY;
+    if (fabTop) {
+      fabTop.classList.toggle('visible', y > 260);
+    }
+    if (scrollBar) {
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      const pct = max > 0 ? Math.min(100, Math.max(0, (y / max) * 100)) : 0;
+      scrollBar.style.width = `${pct}%`;
+    }
   }
 
   if (fabTop) {
@@ -199,7 +207,8 @@
       window.scrollTo({ top: 0, behavior: 'smooth' });
     });
   }
-  window.addEventListener('scroll', syncScrollFab, { passive: true });
+  window.addEventListener('scroll', syncScrollUi, { passive: true });
+  window.addEventListener('resize', syncScrollUi, { passive: true });
 
   // ---------- Verificação da configuração ----------
   const configured = CFG.SUPABASE_URL && CFG.SUPABASE_KEY
@@ -222,7 +231,7 @@
     const html = document.documentElement;
     const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
     html.setAttribute('data-theme', next);
-    try { localStorage.setItem('ad-theme', next); } catch (_) {}
+    try { localStorage.setItem('blc3-theme', next); } catch (_) {}
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute('content', next === 'dark' ? '#07080c' : '#f3f5f9');
   });
@@ -908,7 +917,7 @@
     syncFabState(r);
     closeMenu();
     window.scrollTo(0, 0);
-    syncScrollFab();
+    syncScrollUi();
     view.dataset.route = r;
     const pageTitle = r === 'moderacao'
       ? 'Moderação'
@@ -927,6 +936,19 @@
   }
   window.addEventListener('hashchange', route);
 
+  // ---------- Pílulas de categoria na aba Início ----------
+  function renderCategoryPills() {
+    const box = $('#category-pills');
+    if (!box) return;
+    box.hidden = false;
+    const entries = [['all', 'Todos'], ...Object.entries(CATS).map(([k, v]) => [k, v.label])];
+    box.innerHTML = entries.map(([key, label]) => {
+      const active = state.filters.cat === key;
+      const ic = key !== 'all' ? icon(key) : '';
+      return `<button type="button" class="pill-btn${active ? ' active' : ''}" role="tab" aria-selected="${active}" data-pill="${key}">${ic}${esc(label)}</button>`;
+    }).join('');
+  }
+
   // ---------- Página: listagem ----------
   function renderList(r) {
     const page = PAGES[r];
@@ -941,6 +963,15 @@
     $('#sort').value = state.filters.sort;
 
     if (r === 'inicio') {
+      renderCategoryPills();
+      $('#category-pills').addEventListener('click', (e) => {
+        const pill = e.target.closest('[data-pill]');
+        if (!pill) return;
+        state.filters.cat = pill.dataset.pill;
+        renderCategoryPills();
+        renderGrid();
+      });
+
       $('#new-notice-btn').addEventListener('click', () => openNoticeForm());
       $('#cancel-notice-btn').addEventListener('click', closeNoticeForm);
       $('#notice-form').addEventListener('submit', saveNotice);
