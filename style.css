@@ -385,6 +385,17 @@ input:focus, select:focus, textarea:focus {
   background: var(--accent-2); color: var(--accent-ink);
 }
 
+/* ---------- Busca global no topo ---------- */
+.nav-search { position: relative; flex: 0 1 210px; min-width: 150px; margin-left: auto; }
+.nav-search svg {
+  position: absolute; left: .8rem; top: 50%; width: 16px; height: 16px;
+  transform: translateY(-50%); color: var(--muted); pointer-events: none;
+}
+.nav-search input {
+  min-height: 40px; padding: .4rem .85rem .4rem 2.3rem;
+  font-size: .9rem; border-radius: 999px; background: var(--surface);
+}
+
 .top-actions { display: flex; align-items: center; gap: .45rem; margin-left: auto; }
 .user-chip {
   display: inline-flex; align-items: center; gap: .5rem; max-width: 190px;
@@ -635,7 +646,7 @@ input:focus, select:focus, textarea:focus {
   border: 1px dashed var(--border); color: var(--muted); font-size: .88rem;
 }
 
-/* ---------- Pílulas de categoria ---------- */
+/* ---------- Pílulas de filtro (usadas no diretório de integrantes) ---------- */
 .category-pills {
   display: flex;
   align-items: center;
@@ -671,6 +682,14 @@ input:focus, select:focus, textarea:focus {
 .search input { padding-left: 2.6rem; }
 .toolbar select { flex: 0 1 190px; }
 .count { color: var(--muted); font-size: .88rem; margin: .5rem 0 1rem; }
+
+/* Contagem + ordenação nas páginas de materiais */
+.list-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: .75rem; flex-wrap: wrap; margin: .25rem 0 1rem;
+}
+.list-head .count { margin: 0; }
+.list-head select { width: auto; min-height: 40px; flex: 0 0 auto; margin-left: auto; }
 
 /* ---------- Cards ---------- */
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 1.15rem; }
@@ -790,7 +809,7 @@ input:focus, select:focus, textarea:focus {
 .toast.error { border-color: var(--danger); }
 
 /* ---------- Responsivo ---------- */
-@media (max-width: 1240px) {
+@media (max-width: 1360px) {
   .menu-btn { display: inline-grid; }
   .nav {
     position: fixed; top: var(--topbar-h); left: 0; right: 0; margin: 0;
@@ -803,6 +822,8 @@ input:focus, select:focus, textarea:focus {
   .nav a { padding: .8rem 1rem; font-size: 1rem; }
   .nav a.active { background: var(--surface-2); }
   .nav a.active::after { display: none; }
+  .nav-search { order: -1; flex: 0 0 auto; width: 100%; min-width: 0; margin: 0 0 .5rem; }
+  .nav-search input { min-height: 44px; font-size: 1rem; }
 }
 
 @media (max-width: 640px) {
