@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#07080c">
-  <title>Academia Digital</title>
+  <title>Blog letras campus III</title>
   <script>
     try {
       const t = localStorage.getItem('ad-theme');
@@ -30,9 +30,10 @@
     <div class="auth-card">
       <div class="auth-brand">
         <span class="logo">
-          <img src="logo_ad.jpeg" alt="Logo Academia Digital">
+          <img src="logo_ad.jpeg" alt="Logo Blog letras campus III">
         </span>
-        <h1 data-site-name>Academia Digital</h1>
+        <span class="brand-kicker">Campus III · Letras</span>
+        <h1 data-site-name>Blog letras campus III</h1>
       </div>
       <h2>Configuração pendente</h2>
       <p class="lead" style="margin-top:.6rem">
@@ -50,9 +51,10 @@
     <div class="auth-card" style="text-align:center">
       <div class="auth-brand">
         <span class="logo">
-          <img src="logo_ad.jpeg" alt="Logo Academia Digital">
+          <img src="logo_ad.jpeg" alt="Logo Blog letras campus III">
         </span>
-        <h1 data-site-name>Academia Digital</h1>
+        <span class="brand-kicker">Campus III · Letras</span>
+        <h1 data-site-name>Blog letras campus III</h1>
       </div>
       <h2>Cadastro em análise</h2>
       <p class="lead" style="margin-top:.75rem">
@@ -73,10 +75,11 @@
     <div class="auth-card">
       <div class="auth-brand">
         <span class="logo">
-          <img src="logo_ad.jpeg" alt="Logo Academia Digital">
+          <img src="logo_ad.jpeg" alt="Logo Blog letras campus III">
         </span>
-        <h1 data-site-name>Academia Digital</h1>
-        <p class="hint">Repositório da turma. Entre ou solicite acesso.</p>
+        <span class="brand-kicker">Campus III · Letras</span>
+        <h1 data-site-name>Blog letras campus III</h1>
+        <p class="hint">Espaço acadêmico da turma. Entre ou solicite acesso.</p>
       </div>
 
       <div class="tabs" role="tablist">
@@ -129,9 +132,12 @@
     <header class="topbar">
       <a href="#/inicio" class="brand">
         <span class="logo">
-          <img src="logo_ad.jpeg" alt="Logo Academia Digital">
+          <img src="logo_ad.jpeg" alt="Logo Blog letras campus III">
         </span>
-        <span data-site-name>Academia Digital</span>
+        <span class="brand-text">
+          <span class="brand-sub">Campus III · Letras</span>
+          <span class="brand-title" data-site-name>Blog letras campus III</span>
+        </span>
       </a>
 
       <nav id="nav" class="nav" aria-label="Principal">
@@ -146,7 +152,6 @@
         <a href="#/moderacao" data-route="moderacao" id="nav-mod" class="nav-mod" hidden>
           Moderação <span id="mod-badge" class="badge-count" hidden>0</span>
         </a>
-        <a href="#/enviar" data-route="enviar" class="nav-cta">+ Enviar</a>
       </nav>
 
       <div class="top-actions">
@@ -179,8 +184,23 @@
 
     <main id="view" class="container" tabindex="-1"></main>
 
+    <!-- Botões flutuantes (FAB) -->
+    <div class="fab-stack" aria-label="Ações rápidas">
+      <button type="button" id="fab-top" class="fab-btn fab-secondary" aria-label="Voltar ao topo" title="Voltar ao topo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="m18 15-6-6-6 6"/>
+        </svg>
+      </button>
+      <a href="#/enviar" id="fab-upload" class="fab-btn fab-primary" aria-label="Enviar material" title="Enviar material">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 5v14M5 12h14"/>
+        </svg>
+        <span class="fab-label">Enviar</span>
+      </a>
+    </div>
+
     <footer class="footer">
-      <p>© <span id="year"></span> <span data-site-name>Academia Digital</span> · Projeto acadêmico</p>
+      <p>© <span id="year"></span> <span data-site-name>Blog letras campus III</span> · Letras · Campus III</p>
     </footer>
   </div>
 
@@ -212,13 +232,12 @@
   <!-- Modelos das páginas -->
   <template id="tpl-list">
     <section class="page">
-      <header class="page-head">
+      <header class="page-head hero-banner">
         <div>
           <p class="eyebrow" id="list-eyebrow"></p>
           <h2 id="list-title"></h2>
           <p class="lead" id="list-sub"></p>
         </div>
-        <a href="#/enviar" class="btn btn-primary">+ Enviar material</a>
       </header>
 
       <!-- Mural de Avisos (exibido apenas na aba Início) -->
@@ -293,7 +312,7 @@
 
   <template id="tpl-moderation">
     <section class="page">
-      <header class="page-head">
+      <header class="page-head hero-banner">
         <div>
           <p class="eyebrow">Administração</p>
           <h2>Moderação do site</h2>
@@ -320,7 +339,7 @@
 
   <template id="tpl-upload">
     <section class="page narrow">
-      <header class="page-head">
+      <header class="page-head hero-banner">
         <div>
           <p class="eyebrow">Contribuir</p>
           <h2>Enviar material</h2>
@@ -363,12 +382,12 @@
 
         <label class="field">
           <span>Título</span>
-          <input name="title" type="text" required maxlength="80" placeholder="Ex.: Jogo da Velha em JS, Resumo de Redes, Anteprojeto TCC…">
+          <input name="title" type="text" required maxlength="80" placeholder="Ex.: Análise Literária, Resumo de Linguística, Anteprojeto TCC…">
         </label>
 
         <label class="field">
           <span>Descrição <small id="desc-count">0/1000</small></span>
-          <textarea name="description" rows="4" maxlength="1000" placeholder="Explique do que se trata, como jogar ou o que há no arquivo."></textarea>
+          <textarea name="description" rows="4" maxlength="1000" placeholder="Explique do que se trata, como usar ou o que há no arquivo."></textarea>
         </label>
 
         <label class="field">
@@ -419,21 +438,21 @@
 
   <template id="tpl-about">
     <section class="page narrow">
-      <header class="page-head">
+      <header class="page-head hero-banner">
         <div>
-          <p class="eyebrow">Projeto</p>
-          <h2>Sobre o <span data-site-name>Academia Digital</span></h2>
+          <p class="eyebrow">Campus III · Letras</p>
+          <h2>Sobre o <span data-site-name>Blog letras campus III</span></h2>
         </div>
       </header>
 
       <div class="panel prose">
-        <p>O <strong data-site-name>Academia Digital</strong> é um espaço simples para reunir jogos, documentos, links, vídeos, materiais de TCC e outros arquivos compartilhados pelos alunos.</p>
+        <p>O <strong data-site-name>Blog letras campus III</strong> é um espaço acadêmico colaborativo para reunir jogos, documentos, links, vídeos, materiais de TCC e outros arquivos compartilhados pelos estudantes.</p>
 
         <h3>Como usar</h3>
         <ul>
           <li>Solicite seu cadastro na tela inicial e aguarde a aprovação de um administrador.</li>
           <li>Após aprovado, navegue pelas categorias no topo ou use a busca para encontrar qualquer material.</li>
-          <li>Clique em <strong>+ Enviar</strong> para publicar um arquivo, um link externo ou ambos.</li>
+          <li>Use o botão flutuante <strong>Enviar</strong> no canto inferior direito para publicar um arquivo, um link externo ou ambos.</li>
           <li>Você pode escolher se o material será <strong>Público</strong> (para toda a turma) ou <strong>Privado</strong> (apenas para você, admins e colegas selecionados).</li>
           <li>Todos os envios passam por aprovação dos administradores antes de aparecerem no site.</li>
         </ul>
