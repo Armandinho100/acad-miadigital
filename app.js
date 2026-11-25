@@ -2,6 +2,9 @@
 //  BLOG LETRAS CAMPUS III — lógica do site
 //  Login, aprovação de alunos, diretório de integrantes,
 //  mural de avisos, listagem, moderação, envio e TCC.
+//
+//  IMPORTANTE: as regras de segurança (RLS) ficam no banco.
+//  Rode o arquivo supabase_schema.sql no SQL Editor do Supabase.
 // =====================================================
 (() => {
   'use strict';
@@ -157,6 +160,7 @@
     tcc: { eyebrow: 'Trabalho de Conclusão de Curso', title: 'TCC', sub: 'Anteprojetos, monografias, apresentações, códigos e referências de TCC.' },
   };
   const ROUTES = ['home', 'jogos', 'estagio', 'enade', 'extensao', 'pesquisa', 'tcc', 'integrantes', 'moderacao', 'enviar', 'sobre'];
+  const LIST_ROUTES = ['home', ...Object.keys(CATS)];
 
   // ---------- Estado ----------
   const state = {
@@ -353,21 +357,23 @@
   $('#logout-btn').addEventListener('click', async () => { await sb.auth.signOut(); });
   $('#pending-logout-btn').addEventListener('click', async () => { await sb.auth.signOut(); });
 
-  $('#pending-refresh-btn').addEventListener('click', async () => {
+  // Verifica se o cadastro já foi aprovado (botão e checagem automática)
+  async function checkApproval(silent = false) {
     if (!state.user) return;
     const btn = $('#pending-refresh-btn');
-    setBusy(btn, true, 'Verificando…');
+    if (!silent) setBusy(btn, true, 'Verificando…');
     const profile = await loadProfile(state.user);
-    setBusy(btn, false);
+    if (!silent) setBusy(btn, false);
     if (profile && profile.approved) {
       currentUserId = null;
       const { data } = await sb.auth.getSession();
       await handleSession(data.session);
       toast('Acesso liberado! Bem-vindo(a)!', 'success');
-    } else {
+    } else if (!silent) {
       toast('Seu cadastro ainda está aguardando aprovação de um administrador.', 'info');
     }
-  });
+  }
+  $('#pending-refresh-btn').addEventListener('click', () => checkApproval(false));
 
   // ---------- Botões exclusivos de admin no topo ----------
   function updateAdminNav() {
@@ -406,17 +412,31 @@
     };
   }
 
+  // Admin: lê a tabela completa (com e-mail e celular).
+  // Aluno: lê apenas a view pública (id e nome dos colegas aprovados) — sem dados de contato.
   async function loadAllUsers(force = false) {
     if (state.usersLoaded && !force) return state.usersList;
-    const { data, error } = await sb.from('profiles')
-      .select('id, name, email, phone, role, approved, created_at')
-      .order('created_at', { ascending: false })
-      .limit(500);
-    if (!error && data) {
-      state.allProfiles = data;
-      state.usersList = data.filter((u) => u.approved);
-      state.pendingUsers = data.filter((u) => !u.approved);
-      state.usersLoaded = true;
+
+    if (isAdmin()) {
+      const { data, error } = await sb.from('profiles')
+        .select('id, name, email, phone, role, approved, created_at')
+        .order('created_at', { ascending: false })
+        .limit(500);
+      if (!error && data) {
+        state.allProfiles = data;
+        state.usersList = data.filter((u) => u.approved);
+        state.pendingUsers = data.filter((u) => !u.approved);
+        state.usersLoaded = true;
+      }
+    } else {
+      const { data, error } = await sb.from('profiles_public')
+        .select('id, name, role, approved')
+        .order('name', { ascending: true })
+        .limit(500);
+      if (!error && data) {
+        state.usersList = data.filter((u) => u.approved);
+        state.usersLoaded = true;
+      }
     }
     return state.usersList;
   }
@@ -434,9 +454,13 @@
       state.pendingPosts = [];
       state.notices = [];
       state.noticesExpanded = false;
+      state.covers = {};
       state.loaded = false;
       state.pendingLoaded = false;
       state.noticesLoaded = false;
+      state.filters.q = '';
+      const gq = $('#global-q');
+      if (gq) gq.value = '';
       updateAdminNav();
       closeMenu();
       showScreen('auth');
@@ -679,12 +703,13 @@
     toast('Aluno aprovado! Agora ele já pode entrar no site.', 'success');
   }
 
+  // Recusa: remove a conta por completo (função segura no banco), liberando o e-mail para novo cadastro.
   async function rejectUser(userId, btn) {
     if (!isAdmin()) return toast('Apenas administradores podem recusar cadastros.', 'error');
     const target = state.pendingUsers.find((u) => u.id === userId);
     if (!window.confirm(`Recusar e remover a solicitação de "${target?.name || 'aluno'}"?`)) return;
     btn.disabled = true;
-    const { error } = await sb.from('profiles').delete().eq('id', userId);
+    const { error } = await sb.rpc('reject_user', { target: userId });
     btn.disabled = false;
     if (error) return toast(`Não foi possível recusar: ${formatSupabaseError(error)}`, 'error');
 
@@ -692,7 +717,7 @@
     state.allProfiles = state.allProfiles.filter((u) => u.id !== userId);
     updateAdminNav();
     renderPendingUsers();
-    toast('Solicitação recusada.', 'success');
+    toast('Solicitação recusada e conta removida.', 'success');
   }
 
   // ---------- Dados: Mural de Avisos ----------
@@ -1122,24 +1147,45 @@
   }
   window.addEventListener('hashchange', route);
 
-  // ---------- Pílulas de categoria na aba Home ----------
-  function renderCategoryPills() {
-    const box = $('#category-pills');
-    if (!box) return;
-    box.hidden = false;
-    const entries = [['all', 'Todos'], ...Object.entries(CATS).map(([k, v]) => [k, v.label])];
-    box.innerHTML = entries.map(([key, label]) => {
-      const active = state.filters.cat === key;
-      const ic = key !== 'all' ? icon(key) : '';
-      return `<button type="button" class="pill-btn${active ? ' active' : ''}" role="tab" aria-selected="${active}" data-pill="${key}">${ic}${esc(label)}</button>`;
-    }).join('');
-  }
+  // ---------- Busca global (no topo) ----------
+  // Filtra ao digitar nas páginas de materiais. Em outras páginas (Enviar, Sobre, etc.),
+  // só vai para a Home ao apertar Enter — assim ninguém perde um formulário preenchido.
+  const globalQ = $('#global-q');
+  const isListRoute = () => LIST_ROUTES.includes(currentRoute());
+
+  globalQ.addEventListener('input', () => {
+    state.filters.q = globalQ.value;
+    if (isListRoute() && state.loaded) renderGrid();
+  });
+
+  globalQ.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    if (!isListRoute()) location.hash = '#/home';
+    else globalQ.blur();
+  });
+
+  // ---------- Atualizações automáticas ----------
+  // Tela "cadastro em análise": verifica a aprovação a cada 30 s.
+  setInterval(() => {
+    if (!screens.pending.hidden && !document.hidden) checkApproval(true);
+  }, 30000);
+
+  // Administradores: atualiza o contador de pendências a cada 60 s.
+  setInterval(async () => {
+    if (!state.user || !isAdmin() || document.hidden) return;
+    await Promise.all([loadPendingPosts(), loadAllUsers(true)]);
+    updateAdminNav();
+    if (view.dataset.route === 'moderacao') {
+      renderModerationGrid();
+      renderPendingUsers();
+    }
+  }, 60000);
 
   // ---------- Página: listagem ----------
   function renderList(r) {
     const page = PAGES[r];
     state.filters.cat = r === 'home' ? 'all' : r;
-    state.filters.q = '';
 
     view.replaceChildren($('#tpl-list').content.cloneNode(true));
     const firstName = ((state.profile && state.profile.name) || '').trim().split(/\s+/)[0];
@@ -1149,15 +1195,6 @@
     $('#sort').value = state.filters.sort;
 
     if (r === 'home') {
-      renderCategoryPills();
-      $('#category-pills').addEventListener('click', (e) => {
-        const pill = e.target.closest('[data-pill]');
-        if (!pill) return;
-        state.filters.cat = pill.dataset.pill;
-        renderCategoryPills();
-        renderGrid();
-      });
-
       $('#new-notice-btn').addEventListener('click', () => openNoticeForm());
       $('#cancel-notice-btn').addEventListener('click', closeNoticeForm);
       $('#notice-form').addEventListener('submit', saveNotice);
@@ -1184,7 +1221,6 @@
       }
     }
 
-    $('#q').addEventListener('input', (e) => { state.filters.q = e.target.value; renderGrid(); });
     $('#sort').addEventListener('change', (e) => { state.filters.sort = e.target.value; renderGrid(); });
     $('#grid').addEventListener('click', onGridClick);
 
@@ -1522,6 +1558,7 @@
       const filePath = file ? await upload(file, '') : null;
       const coverPath = cover ? await upload(cover, 'capa-') : null;
 
+      // O banco define sozinho o autor e o status (pendente para alunos, aprovado para admins).
       const { data: inserted, error } = await sb.from('posts').insert({
         user_id: state.user.id,
         title,
@@ -1545,7 +1582,10 @@
           user_id: uid,
         }));
         const { error: accErr } = await sb.from('post_access').insert(accessRows);
-        if (accErr) console.error('Erro ao salvar permissões iniciais:', accErr);
+        if (accErr) {
+          console.error('Erro ao salvar permissões iniciais:', accErr);
+          toast('Material enviado, mas não foi possível salvar os colegas liberados. Use o botão de acesso no card.', 'error');
+        }
       }
     } catch (err) {
       console.error(err);
