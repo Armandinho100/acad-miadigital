@@ -45,6 +45,29 @@
     </div>
   </section>
 
+  <!-- Tela de conta aguardando aprovação de um administrador -->
+  <section id="pending-view" class="auth" hidden>
+    <div class="auth-card" style="text-align:center">
+      <div class="auth-brand">
+        <span class="logo">
+          <img src="logo_ad.jpeg" alt="Logo Academia Digital">
+        </span>
+        <h1 data-site-name>Academia Digital</h1>
+      </div>
+      <h2>Cadastro em análise</h2>
+      <p class="lead" style="margin-top:.75rem">
+        Olá, <strong id="pending-user-name">aluno</strong>! Sua solicitação de acesso foi recebida.
+      </p>
+      <p class="hint" style="margin-top:.75rem;line-height:1.6">
+        Um administrador precisa aprovar sua entrada antes que você possa visualizar, baixar ou enviar materiais no site.
+      </p>
+      <div class="form-actions" style="justify-content:center;margin-top:1.5rem">
+        <button type="button" id="pending-refresh-btn" class="btn btn-primary">Verificar aprovação</button>
+        <button type="button" id="pending-logout-btn" class="btn">Sair</button>
+      </div>
+    </div>
+  </section>
+
   <!-- Tela de login / cadastro -->
   <section id="auth-view" class="auth" hidden>
     <div class="auth-card">
@@ -53,12 +76,12 @@
           <img src="logo_ad.jpeg" alt="Logo Academia Digital">
         </span>
         <h1 data-site-name>Academia Digital</h1>
-        <p class="hint">Repositório da turma. Entre para acessar.</p>
+        <p class="hint">Repositório da turma. Entre ou solicite acesso.</p>
       </div>
 
       <div class="tabs" role="tablist">
         <button type="button" class="tab active" role="tab" aria-selected="true" data-tab="login">Entrar</button>
-        <button type="button" class="tab" role="tab" aria-selected="false" data-tab="register">Criar conta</button>
+        <button type="button" class="tab" role="tab" aria-selected="false" data-tab="register">Solicitar acesso</button>
       </div>
 
       <form id="form-login" novalidate>
@@ -80,7 +103,7 @@
 
       <form id="form-register" hidden novalidate>
         <label class="field">
-          <span>Seu nome</span>
+          <span>Seu nome completo</span>
           <input name="name" type="text" autocomplete="name" required maxlength="60" placeholder="Como seu nome aparece nas postagens">
         </label>
         <label class="field">
@@ -96,12 +119,12 @@
           <span>Mostrar senha</span>
         </label>
         <p class="form-error" role="alert" hidden></p>
-        <button type="submit" class="btn btn-primary btn-block">Criar conta</button>
+        <button type="submit" class="btn btn-primary btn-block">Solicitar cadastro</button>
       </form>
     </div>
   </section>
 
-  <!-- Aplicação (visível apenas para quem está logado) -->
+  <!-- Aplicação (visível apenas para usuários aprovados) -->
   <div id="app" hidden>
     <header class="topbar">
       <a href="#/inicio" class="brand">
@@ -273,10 +296,23 @@
       <header class="page-head">
         <div>
           <p class="eyebrow">Administração</p>
-          <h2>Fila de moderação</h2>
-          <p class="lead">Aprove ou recuse os materiais enviados pelos alunos antes de ficarem visíveis no site.</p>
+          <h2>Moderação do site</h2>
+          <p class="lead">Aprove solicitações de entrada de novos alunos e revise os materiais enviados antes de irem ao ar.</p>
         </div>
       </header>
+
+      <section class="panel" style="margin-bottom:2rem">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:1rem">
+          <div>
+            <h3>Solicitações de acesso de alunos</h3>
+            <p class="hint">Apenas alunos aprovados podem acessar o site e publicar arquivos.</p>
+          </div>
+          <span class="count" id="users-mod-count" style="margin:0"></span>
+        </div>
+        <div id="pending-users-list" class="pending-users-list"></div>
+      </section>
+
+      <h3 style="margin-bottom:.75rem">Materiais aguardando aprovação</h3>
       <p class="count" id="mod-count" hidden></p>
       <div class="grid" id="mod-grid"></div>
     </section>
@@ -305,7 +341,7 @@
               <input type="radio" name="visibility" value="public" checked>
               <div>
                 <strong>Público</strong>
-                <small>Todos os alunos logados podem ver e baixar</small>
+                <small>Todos os alunos aprovados podem ver e baixar</small>
               </div>
             </label>
             <label class="vis-option">
@@ -395,11 +431,11 @@
 
         <h3>Como usar</h3>
         <ul>
-          <li>Entre com sua conta da turma (ou crie uma na tela de entrada).</li>
-          <li>Navegue pelas categorias no topo ou use a busca para encontrar qualquer material.</li>
+          <li>Solicite seu cadastro na tela inicial e aguarde a aprovação de um administrador.</li>
+          <li>Após aprovado, navegue pelas categorias no topo ou use a busca para encontrar qualquer material.</li>
           <li>Clique em <strong>+ Enviar</strong> para publicar um arquivo, um link externo ou ambos.</li>
           <li>Você pode escolher se o material será <strong>Público</strong> (para toda a turma) ou <strong>Privado</strong> (apenas para você, admins e colegas selecionados).</li>
-          <li>Envios feitos por alunos passam por aprovação da moderação antes de aparecerem no site.</li>
+          <li>Todos os envios passam por aprovação dos administradores antes de aparecerem no site.</li>
         </ul>
 
         <h3>Boas práticas</h3>
