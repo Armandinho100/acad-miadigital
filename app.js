@@ -118,10 +118,10 @@
   // ---------- Ícones e categorias ----------
   const ICON_PATHS = {
     jogos: '<rect x="2.5" y="7" width="19" height="11" rx="4"/><path d="M7 10.5v4M5 12.5h4"/><circle cx="15.5" cy="11.5" r=".7"/><circle cx="18" cy="13.5" r=".7"/>',
-    documentos: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/>',
-    links: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
-    videos: '<rect x="3" y="5" width="18" height="14" rx="3"/><path d="m10 9 5 3-5 3z"/>',
-    outros: '<path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/>',
+    estagio: '<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><path d="M2 13h20"/>',
+    enade: '<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>',
+    extensao: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+    pesquisa: '<circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/><path d="M11 8v6M8 11h6"/>',
     tcc: '<path d="M22 10 12 5 2 10l10 5 10-5z"/><path d="M6 12v5c0 1.7 2.7 3 6 3s6-1.3 6-3v-5"/><path d="M22 10v6"/>',
     download: '<path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M5 20h14"/>',
     external: '<path d="M14 4h6v6M20 4l-9 9"/><path d="M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4"/>',
@@ -140,23 +140,23 @@
 
   const CATS = {
     jogos: { label: 'Jogos', action: 'Jogar' },
-    documentos: { label: 'Documentos', action: 'Abrir' },
-    links: { label: 'Links', action: 'Acessar' },
-    videos: { label: 'Vídeos', action: 'Assistir' },
-    outros: { label: 'Outros', action: 'Acessar' },
+    estagio: { label: 'Estágio', action: 'Abrir' },
+    enade: { label: 'Enade', action: 'Acessar' },
+    extensao: { label: 'Extensão', action: 'Acessar' },
+    pesquisa: { label: 'Pesquisa', action: 'Abrir' },
     tcc: { label: 'TCC', action: 'Abrir TCC' },
   };
 
   const PAGES = {
-    inicio: { eyebrow: 'Campus III · Letras', title: 'Tudo em um só lugar', sub: 'Avisos da turma e materiais compartilhados pelo Blog letras campus III.' },
+    home: { eyebrow: 'Campus III · Letras', title: 'Tudo em um só lugar', sub: 'Avisos da turma e materiais compartilhados pelo Blog letras campus III.' },
     jogos: { eyebrow: 'Categoria', title: 'Jogos', sub: 'Jogos criados pelos alunos. Jogue online ou baixe.' },
-    documentos: { eyebrow: 'Categoria', title: 'Documentos', sub: 'PDFs, slides, planilhas e textos para estudo.' },
-    links: { eyebrow: 'Categoria', title: 'Links', sub: 'Sites, pastas e referências úteis.' },
-    videos: { eyebrow: 'Categoria', title: 'Vídeos', sub: 'Vídeos enviados e links de plataformas de vídeo.' },
-    outros: { eyebrow: 'Categoria', title: 'Outros', sub: 'Materiais que não se encaixam nas demais categorias.' },
+    estagio: { eyebrow: 'Categoria', title: 'Estágio', sub: 'Relatórios, fichas, orientações e materiais de estágio supervisionado.' },
+    enade: { eyebrow: 'Categoria', title: 'Enade', sub: 'Provas anteriores, simulados, resumos e guias de preparação para o Enade.' },
+    extensao: { eyebrow: 'Categoria', title: 'Extensão', sub: 'Projetos de extensão, oficinas, eventos e ações comunitárias do curso.' },
+    pesquisa: { eyebrow: 'Categoria', title: 'Pesquisa', sub: 'Artigos, iniciação científica, grupos de estudo e levantamentos bibliográficos.' },
     tcc: { eyebrow: 'Trabalho de Conclusão de Curso', title: 'TCC', sub: 'Anteprojetos, monografias, apresentações, códigos e referências de TCC.' },
   };
-  const ROUTES = ['inicio', 'jogos', 'documentos', 'links', 'videos', 'outros', 'tcc', 'integrantes', 'moderacao', 'enviar', 'sobre'];
+  const ROUTES = ['home', 'jogos', 'estagio', 'enade', 'extensao', 'pesquisa', 'tcc', 'integrantes', 'moderacao', 'enviar', 'sobre'];
 
   // ---------- Estado ----------
   const state = {
@@ -196,25 +196,6 @@
   document.title = SITE;
   $$('[data-site-name]').forEach((n) => { n.textContent = SITE; });
   $('#year').textContent = new Date().getFullYear();
-
-  // ---------- Pesquisa no topo (procura arquivos pelo nome) ----------
-  const topSearchInput = $('#top-q');
-  if (topSearchInput) {
-    topSearchInput.addEventListener('input', (e) => {
-      const val = e.target.value;
-      state.filters.q = val;
-      state.memberFilters.q = val;
-
-      const r = view.dataset.route;
-      if (r === 'integrantes') {
-        renderMembersGrid();
-      } else if (r === 'moderacao') {
-        renderModerationGrid();
-      } else if (r !== 'enviar' && r !== 'sobre') {
-        renderGrid();
-      }
-    });
-  }
 
   // ---------- Botões flutuantes (FAB) e barra de progresso ----------
   const fabTop = $('#fab-top');
@@ -486,7 +467,7 @@
       updateAdminNav();
     }
     showScreen('app');
-    if (location.hash !== '#/inicio') history.replaceState(null, '', '#/inicio');
+    if (location.hash !== '#/home') history.replaceState(null, '', '#/home');
     route();
   }
 
@@ -597,7 +578,7 @@
       grid.innerHTML = `
         <div class="empty">
           <h3>Nenhum integrante encontrado</h3>
-          <p>Ajuste o filtro ou refine a busca no topo.</p>
+          <p>Ajuste o filtro ou busque por outro nome, e-mail ou número.</p>
         </div>`;
       return;
     }
@@ -607,10 +588,10 @@
 
   function renderMembers() {
     if (!isAdmin()) {
-      location.hash = '#/inicio';
+      location.hash = '#/home';
       return;
     }
-    state.memberFilters = { q: topSearchInput ? topSearchInput.value : '', sort: 'az', tab: 'all' };
+    state.memberFilters = { q: '', sort: 'az', tab: 'all' };
     view.replaceChildren($('#tpl-members').content.cloneNode(true));
 
     $('#members-filter-pills').addEventListener('click', (e) => {
@@ -618,6 +599,11 @@
       if (!btn) return;
       state.memberFilters.tab = btn.dataset.mfilter;
       $$('#members-filter-pills .pill-btn').forEach((b) => b.classList.toggle('active', b === btn));
+      renderMembersGrid();
+    });
+
+    $('#members-q').addEventListener('input', (e) => {
+      state.memberFilters.q = e.target.value;
       renderMembersGrid();
     });
 
@@ -1098,8 +1084,9 @@
 
   function currentRoute() {
     const r = location.hash.replace(/^#\/?/, '').split('?')[0];
-    if ((r === 'moderacao' || r === 'integrantes') && !isAdmin()) return 'inicio';
-    return ROUTES.includes(r) ? r : 'inicio';
+    if (r === 'inicio') return 'home';
+    if ((r === 'moderacao' || r === 'integrantes') && !isAdmin()) return 'home';
+    return ROUTES.includes(r) ? r : 'home';
   }
 
   function route() {
@@ -1107,7 +1094,7 @@
     const r = currentRoute();
     const rawR = location.hash.replace(/^#\/?/, '').split('?')[0];
     if ((rawR === 'moderacao' || rawR === 'integrantes') && !isAdmin()) {
-      history.replaceState(null, '', '#/inicio');
+      history.replaceState(null, '', '#/home');
     }
     $$('.nav a').forEach((a) => a.classList.toggle('active', a.dataset.route === r));
     syncFabState(r);
@@ -1123,10 +1110,10 @@
           ? 'Enviar material'
           : r === 'sobre'
             ? 'Sobre'
-            : r === 'inicio'
-              ? ''
+            : r === 'home'
+              ? 'Home'
               : PAGES[r].title;
-    document.title = pageTitle ? `${pageTitle} · ${SITE}` : SITE;
+    document.title = `${pageTitle} · ${SITE}`;
     if (r === 'integrantes') renderMembers();
     else if (r === 'moderacao') renderModeration();
     else if (r === 'enviar') renderUpload();
@@ -1135,7 +1122,7 @@
   }
   window.addEventListener('hashchange', route);
 
-  // ---------- Pílulas de categoria na aba Início ----------
+  // ---------- Pílulas de categoria na aba Home ----------
   function renderCategoryPills() {
     const box = $('#category-pills');
     if (!box) return;
@@ -1151,17 +1138,17 @@
   // ---------- Página: listagem ----------
   function renderList(r) {
     const page = PAGES[r];
-    state.filters.cat = r === 'inicio' ? 'all' : r;
-    state.filters.q = topSearchInput ? topSearchInput.value : '';
+    state.filters.cat = r === 'home' ? 'all' : r;
+    state.filters.q = '';
 
     view.replaceChildren($('#tpl-list').content.cloneNode(true));
     const firstName = ((state.profile && state.profile.name) || '').trim().split(/\s+/)[0];
-    $('#list-eyebrow').textContent = r === 'inicio' && firstName ? `Campus III · Letras · Olá, ${firstName}` : page.eyebrow;
+    $('#list-eyebrow').textContent = r === 'home' && firstName ? `Campus III · Letras · Olá, ${firstName}` : page.eyebrow;
     $('#list-title').textContent = page.title;
     $('#list-sub').textContent = page.sub;
     $('#sort').value = state.filters.sort;
 
-    if (r === 'inicio') {
+    if (r === 'home') {
       renderCategoryPills();
       $('#category-pills').addEventListener('click', (e) => {
         const pill = e.target.closest('[data-pill]');
@@ -1193,10 +1180,11 @@
       if (state.noticesLoaded) {
         renderBoard();
       } else {
-        loadNotices().then(() => { if (view.dataset.route === 'inicio') renderBoard(); });
+        loadNotices().then(() => { if (view.dataset.route === 'home') renderBoard(); });
       }
     }
 
+    $('#q').addEventListener('input', (e) => { state.filters.q = e.target.value; renderGrid(); });
     $('#sort').addEventListener('change', (e) => { state.filters.sort = e.target.value; renderGrid(); });
     $('#grid').addEventListener('click', onGridClick);
 
@@ -1213,7 +1201,7 @@
     const term = q.trim().toLowerCase();
     const list = state.posts.filter((p) =>
       (cat === 'all' || p.category === cat)
-      && (!term || [p.title, p.file_name].some((v) => (v || '').toLowerCase().includes(term))));
+      && (!term || [p.title, p.description, p.author_name].some((v) => (v || '').toLowerCase().includes(term))));
     if (sort === 'old') list.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
     else if (sort === 'az') list.sort((a, b) => a.title.localeCompare(b.title, 'pt-BR'));
     else list.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
@@ -1221,7 +1209,7 @@
   }
 
   function cardHtml(p) {
-    const cat = CATS[p.category] ? p.category : 'outros';
+    const cat = CATS[p.category] ? p.category : 'estagio';
     const meta = CATS[cat];
     const cover = state.covers[p.cover_path];
     const link = p.link_url ? safeUrl(p.link_url) : null;
@@ -1262,8 +1250,8 @@
     count.textContent = list.length === 1 ? '1 material' : `${list.length} materiais`;
 
     if (list.length === 0) {
-      let title = 'Nenhum arquivo encontrado';
-      let text = 'Tente outro nome na barra de pesquisa do topo.';
+      let title = 'Nada encontrado';
+      let text = 'Tente buscar com outras palavras.';
       if (state.posts.length === 0) {
         title = 'Ainda não há materiais aqui';
         text = 'Seja o primeiro a compartilhar! Use o botão flutuante Enviar.';
@@ -1292,7 +1280,7 @@
 
   // ---------- Página: moderação (apenas admins) ----------
   function moderationCardHtml(p) {
-    const cat = CATS[p.category] ? p.category : 'outros';
+    const cat = CATS[p.category] ? p.category : 'estagio';
     const meta = CATS[cat];
     const cover = state.covers[p.cover_path];
     const link = p.link_url ? safeUrl(p.link_url) : null;
@@ -1327,10 +1315,7 @@
   function renderModerationGrid() {
     const grid = $('#mod-grid');
     if (!grid) return;
-    const term = (state.filters.q || '').trim().toLowerCase();
-    const list = state.pendingPosts.filter((p) =>
-      !term || [p.title, p.file_name].some((v) => (v || '').toLowerCase().includes(term))
-    );
+    const list = state.pendingPosts;
     const count = $('#mod-count');
     count.hidden = list.length === 0;
     count.textContent = list.length === 1 ? '1 envio pendente' : `${list.length} envios pendentes`;
@@ -1339,7 +1324,7 @@
       grid.innerHTML = `
         <div class="empty">
           <h3>Nenhum envio pendente</h3>
-          <p>${term ? 'Nenhum material pendente corresponde ao nome pesquisado.' : 'Todos os envios já foram revisados.'}</p>
+          <p>Todos os envios já foram revisados.</p>
         </div>`;
       return;
     }
@@ -1358,10 +1343,9 @@
 
   function renderModeration() {
     if (!isAdmin()) {
-      location.hash = '#/inicio';
+      location.hash = '#/home';
       return;
     }
-    state.filters.q = topSearchInput ? topSearchInput.value : '';
     view.replaceChildren($('#tpl-moderation').content.cloneNode(true));
     $('#mod-grid').addEventListener('click', onModerationClick);
 
@@ -1434,10 +1418,10 @@
 
     const hints = {
       jogos: 'Para jogos online, cole aqui o link para jogar. Se preferir, envie o .zip do jogo no campo Arquivo.',
-      documentos: 'Opcional: link do documento (Drive, por exemplo).',
-      links: 'Cole o endereço do site ou da pasta que você quer compartilhar.',
-      videos: 'Cole o link do vídeo (YouTube, por exemplo) ou envie o arquivo abaixo.',
-      outros: 'Opcional: link relacionado ao material.',
+      estagio: 'Compartilhe fichas, modelos de relatório, planos de aula ou links de estágio.',
+      enade: 'Compartilhe provas comentadas, simulados, resumos ou links de preparação para o Enade.',
+      extensao: 'Compartilhe projetos, editais, oficinas, registros ou links de extensão.',
+      pesquisa: 'Compartilhe artigos, resumos, referências ou links de pesquisa acadêmica.',
       tcc: 'Envie PDF/DOCX/ZIP do TCC ou cole o link do Google Docs, Overleaf, GitHub ou apresentação.',
     };
     const updateHint = () => { $('#link-hint').textContent = hints[select.value]; };
@@ -1511,7 +1495,6 @@
     if (title.length < 3) return fail('O título precisa ter pelo menos 3 caracteres.');
     const link = rawLink ? safeUrl(rawLink) : null;
     if (rawLink && !link) return fail('Digite um link válido, começando com http:// ou https://.');
-    if (category === 'links' && !link) return fail('Na categoria Links, o link é obrigatório.');
     if (!link && !file) return fail('Envie um arquivo ou informe um link.');
 
     if (file) {
@@ -1577,7 +1560,7 @@
       location.hash = `#/${category}`;
     } else {
       toast('Enviado para análise! Um administrador irá revisar antes de publicar.', 'success');
-      location.hash = '#/inicio';
+      location.hash = '#/home';
     }
   }
 
