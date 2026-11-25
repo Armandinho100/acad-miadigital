@@ -7,7 +7,7 @@
   <title>Blog letras campus III</title>
   <script>
     try {
-      const t = localStorage.getItem('ad-theme');
+      const t = localStorage.getItem('blc3-theme');
       if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
     } catch (_) {}
   </script>
@@ -129,6 +129,8 @@
 
   <!-- Aplicação (visível apenas para usuários aprovados) -->
   <div id="app" hidden>
+    <div class="scroll-progress" id="scroll-progress" aria-hidden="true"></div>
+
     <header class="topbar">
       <a href="#/inicio" class="brand">
         <span class="logo">
@@ -290,6 +292,9 @@
           <button type="button" class="btn btn-sm" id="notices-more-btn">Ver mais avisos</button>
         </div>
       </section>
+
+      <!-- Filtro rápido por categoria (exibido apenas na aba Início) -->
+      <div id="category-pills" class="category-pills" role="tablist" aria-label="Filtrar por categoria" hidden></div>
 
       <div class="toolbar">
         <div class="search">
