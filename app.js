@@ -125,6 +125,8 @@
     enade: '<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>',
     extensao: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
     pesquisa: '<circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/><path d="M11 8v6M8 11h6"/>',
+    eventos: '<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 17.5h.01M12 17.5h.01"/>',
+    publicacoes: '<path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/>',
     tcc: '<path d="M22 10 12 5 2 10l10 5 10-5z"/><path d="M6 12v5c0 1.7 2.7 3 6 3s6-1.3 6-3v-5"/><path d="M22 10v6"/>',
     download: '<path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M5 20h14"/>',
     external: '<path d="M14 4h6v6M20 4l-9 9"/><path d="M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4"/>',
@@ -141,25 +143,30 @@
   const icon = (name) =>
     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON_PATHS[name] || ''}</svg>`;
 
+  // A ordem abaixo é a mesma do menu, dos atalhos da Home e da tela de envio.
   const CATS = {
-    jogos: { label: 'Jogos', action: 'Jogar' },
-    estagio: { label: 'Estágio', action: 'Abrir' },
-    enade: { label: 'Enade', action: 'Acessar' },
-    extensao: { label: 'Extensão', action: 'Acessar' },
     pesquisa: { label: 'Pesquisa', action: 'Abrir' },
+    extensao: { label: 'Extensão', action: 'Acessar' },
+    estagio: { label: 'Estágio', action: 'Abrir' },
     tcc: { label: 'TCC', action: 'Abrir TCC' },
+    enade: { label: 'Enade', action: 'Acessar' },
+    eventos: { label: 'Eventos', action: 'Acessar' },
+    publicacoes: { label: 'Publicações', action: 'Ler' },
+    jogos: { label: 'Jogos', action: 'Jogar' },
   };
 
   const PAGES = {
-    home: { eyebrow: 'Campus III · Letras', title: 'Tudo em um só lugar', sub: 'Avisos da turma e materiais compartilhados pelo Blog letras campus III.' },
-    jogos: { eyebrow: 'Categoria', title: 'Jogos', sub: 'Jogos criados pelos alunos. Jogue online ou baixe.' },
-    estagio: { eyebrow: 'Categoria', title: 'Estágio', sub: 'Relatórios, fichas, orientações e materiais de estágio supervisionado.' },
-    enade: { eyebrow: 'Categoria', title: 'Enade', sub: 'Provas anteriores, simulados, resumos e guias de preparação para o Enade.' },
-    extensao: { eyebrow: 'Categoria', title: 'Extensão', sub: 'Projetos de extensão, oficinas, eventos e ações comunitárias do curso.' },
+    home: { eyebrow: 'Campus III · Letras', title: 'Tudo em um só lugar', sub: 'Avisos e materiais compartilhados pelo Blog de Letras Campus III.' },
     pesquisa: { eyebrow: 'Categoria', title: 'Pesquisa', sub: 'Artigos, iniciação científica, grupos de estudo e levantamentos bibliográficos.' },
+    extensao: { eyebrow: 'Categoria', title: 'Extensão', sub: 'Projetos de extensão, oficinas e ações comunitárias do curso.' },
+    estagio: { eyebrow: 'Categoria', title: 'Estágio', sub: 'Relatórios, fichas, orientações e materiais de estágio supervisionado.' },
     tcc: { eyebrow: 'Trabalho de Conclusão de Curso', title: 'TCC', sub: 'Anteprojetos, monografias, apresentações, códigos e referências de TCC.' },
+    enade: { eyebrow: 'Categoria', title: 'Enade', sub: 'Provas anteriores, simulados, resumos e guias de preparação para o Enade.' },
+    eventos: { eyebrow: 'Categoria', title: 'Eventos', sub: 'Semanas acadêmicas, congressos, palestras, programações e inscrições.' },
+    publicacoes: { eyebrow: 'Categoria', title: 'Publicações', sub: 'Artigos, livros, capítulos, revistas, anais e produções da comunidade de Letras.' },
+    jogos: { eyebrow: 'Categoria', title: 'Jogos', sub: 'Jogos criados pelos alunos. Jogue online ou baixe.' },
   };
-  const ROUTES = ['home', 'jogos', 'estagio', 'enade', 'extensao', 'pesquisa', 'tcc', 'integrantes', 'moderacao', 'enviar', 'sobre'];
+  const ROUTES = ['home', ...Object.keys(CATS), 'integrantes', 'moderacao', 'enviar', 'sobre'];
   const LIST_ROUTES = ['home', ...Object.keys(CATS)];
 
   // ---------- Estado ----------
@@ -1221,6 +1228,11 @@
       }
     }
 
+    if (r === 'home') {
+      $('#shortcuts').hidden = false;
+      renderShortcuts();
+    }
+
     $('#sort').addEventListener('change', (e) => { state.filters.sort = e.target.value; renderGrid(); });
     $('#grid').addEventListener('click', onGridClick);
 
@@ -1230,6 +1242,21 @@
       $('#grid').innerHTML = '<div class="skeleton"></div>'.repeat(6);
       loadPosts().then(() => { if (view.dataset.route === r) renderGrid(); });
     }
+  }
+
+  // Atalhos da Home: um cartão por categoria, com a quantidade de materiais.
+  function renderShortcuts() {
+    const box = $('#shortcuts');
+    if (!box || box.hidden) return;
+    box.innerHTML = Object.entries(CATS).map(([key, meta]) => {
+      const total = state.posts.filter((p) => p.category === key).length;
+      const info = !state.loaded ? '&nbsp;' : total === 1 ? '1 material' : `${total} materiais`;
+      return `
+        <a class="shortcut" href="#/${key}" data-cat="${key}">
+          <span class="shortcut-icon">${icon(key)}</span>
+          <span class="shortcut-text"><strong>${esc(meta.label)}</strong><small>${info}</small></span>
+        </a>`;
+    }).join('');
   }
 
   function filteredPosts() {
@@ -1280,6 +1307,7 @@
   function renderGrid() {
     const grid = $('#grid');
     if (!grid) return;
+    renderShortcuts();
     const list = filteredPosts();
     const count = $('#count');
     count.hidden = list.length === 0;
@@ -1453,6 +1481,8 @@
     });
 
     const hints = {
+      eventos: 'Compartilhe programações, cartazes, links de inscrição ou registros de eventos.',
+      publicacoes: 'Envie o PDF da publicação ou cole o link da revista, do livro ou dos anais.',
       jogos: 'Para jogos online, cole aqui o link para jogar. Se preferir, envie o .zip do jogo no campo Arquivo.',
       estagio: 'Compartilhe fichas, modelos de relatório, planos de aula ou links de estágio.',
       enade: 'Compartilhe provas comentadas, simulados, resumos ou links de preparação para o Enade.',
